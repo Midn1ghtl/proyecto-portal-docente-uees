@@ -7,7 +7,9 @@ Proyecto de cátedra: rediseño del Portal Docente UEES
 
 Integrantes y carnets:
 Andrea Gabriela Miranda Marítnez 2025011075
+
 Daniela Alejandra Méndez Ramírez 2025010674
+
 Emily Josabet Pérez Melgar 2025010519
 
 Asignatura:
@@ -27,3 +29,11 @@ Instrucciones de visualización y ejecución
 2. Descomprimir y abrir en Visual Studio Code
 3. El archivo de vistas.io se encuentra en formato XML. por lo tanto para ejecutarlo debe en Draw.io para poder visualizarlo correctamente.
 4. Las APIs se encuentran en archivo pdf
+
+Commits representativos
+
+•	Diagramas en Draw.io - Emily
+•	APIs                 - Andrea
+•	Base de datos        - Daniela
+•	Código               - Emily, Andrea y Daniela.
+•	Matriz comparativa   - Emily, Andrea y Daniela.
