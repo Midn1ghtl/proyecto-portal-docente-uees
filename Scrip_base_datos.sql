@@ -17,10 +17,6 @@ CREATE TABLE Asignaturas(
 ) 
 );
  
-/* SQLINES DEMO * able [dbo].[Calificaciones]    Script Date: 16/8/2026 12:17:17 **/
-/* SET ANSI_NULLS ON */
- 
-/* SET QUOTED_IDENTIFIER ON */
  
 CREATE TABLE Calificaciones(
 	CalificacionId int NOT NULL,
@@ -38,10 +34,6 @@ CREATE TABLE Calificaciones(
 ) 
 );
  
-/* SQLINES DEMO * able [dbo].[Cursos]    Script Date: 16/8/2026 12:17:17 **/
-/* SET ANSI_NULLS ON */
- 
-/* SET QUOTED_IDENTIFIER ON */
  
 CREATE TABLE Cursos(
 	CursoId int NOT NULL,
@@ -53,10 +45,6 @@ CREATE TABLE Cursos(
 ) 
 );
  
-/* SQLINES DEMO * able [dbo].[Estudiantes]    Script Date: 16/8/2026 12:17:17 **/
-/* SET ANSI_NULLS ON */
- 
-/* SET QUOTED_IDENTIFIER ON */
  
 CREATE TABLE Estudiantes(
 	EstudianteId int NOT NULL,
@@ -75,10 +63,7 @@ CREATE TABLE Estudiantes(
 );
  
 /* SQLINES DEMO * able [dbo].[Profesores]    Script Date: 16/8/2026 12:17:17 **/
-/* SET ANSI_NULLS ON */
- 
-/* SET QUOTED_IDENTIFIER ON */
- 
+
 CREATE TABLE Profesores(
 	ProfesorId int NOT NULL,
 	Nombre varchar(100) NULL,
