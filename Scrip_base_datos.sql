@@ -84,6 +84,16 @@ CREATE TABLE Evaluaciones(
 	Fecha date NULL,
 	NombreEvaluacion varchar(50) NULL,
 	
+ CONSTRAINT PK_Matricula PRIMARY KEY 
+(
+	AsignaturaId
+) 
+);
+
+CREATE TABLE Matricula(
+	AsignaturaId int NOT NULL,
+	EstudianteId Varchar(50) NULL,
+	CursoId int NULL,
 	
  CONSTRAINT PK_Matricula PRIMARY KEY 
 (
