@@ -1,0 +1,735 @@
+
+{
+    "paths": {
+        "/api/v1/login/profesor": {
+            "post": {
+                "tags": [
+                    "Inicio_sesion"
+                ],
+                "summary": "Iniciar sesión como docente",
+                "description": "Este endpoint permite a los docentes iniciar sesión en el sistema proporcionando sus credenciales.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "carnet": "0000001",
+                                "contraseña": "1234"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Inicio de sesión exitoso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/login"
+                                },
+                                "example": {
+                                    "status": "success",
+                                    "message": "Inicio de sesión éxitoso.",
+                                    "data":{
+                                        "profesorId": 1,
+                                        "nombre": "Jonathan Reyes",
+                                        "correo": "jonathanreyes@hotmail.com",
+                                        "carnet": "0000001"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "status": "error",
+                        "description": "Credenciales inválidas"
+                    }
+                }
+            }
+        },
+
+
+        "/api/v1/profesor/{profesorId}/cursos": {
+            "get": {
+                "tags": [
+                    "Curso"
+                ],
+                "Summary": "Obtener la información de un curso",
+                "description": "Método para obtener la información detallada de un curso.",
+                "parameters": [
+                    {
+                        "name": "profesorId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id del docente.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+
+                ],
+
+                "responses": {
+                    "200": {
+                        "description": "Se encontró el curso solicitado con éxito.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/curso"
+                                },
+                                "example": {
+                                    "status": "success",
+                                    "message": "Curso encontrado",
+                                    "data": {
+                                        "cursoId": 1,
+                                        "codigo_asignatura": "ATH-2026",
+                                        "nombre_asignatura": "Anatomía Humana",
+                                        "profesor": "Jonathan Reyes",
+                                        "horario": "Martes 6:00 - 8:00 PM",
+                                        "total_estudiantes": 19
+
+                                    }
+
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "status": "error",
+                        "description": "No se encontró el curso solicitado"
+                    }
+                }
+            }
+        },
+
+
+        "/api/v1/curso/{cursoId}/estudiantes": {
+            "get": {
+                "tags": [
+                    "Curso"
+                ],
+                "summary": "Obtener la lista de estudiantes de un curso",
+                "description": "Método para obtener la lista de estudiantes matriculados en el curso.",
+                "parameters": [
+                    {
+                        "name": "cursoId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id del curso.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de estudiantes obtenida exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/listEstudiante"
+                                },
+                                "example": {
+                                    "status": "success",
+                                    "message": "Lista de estudiantes obtenida exitosamente",    
+                                    "data": [
+                                        {
+                                            "id_matricula": 1,
+                                            "nombre": "Sara Molina",
+                                            "cif": "2025011280",
+                                            "nota": 7.5
+                                        },
+                                        {
+                                            "id_matricula": 1,
+                                            "nombre": "Monica Torres",
+                                            "cif": "2025011909",
+                                            "nota": 9
+                                        }
+                                    ]
+
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "status": "error",
+                        "description": "Curso no encontrado"
+                    }
+                }
+            }
+        },
+
+        "/api/v1/calificaciones": {
+            "post": {
+                "tags": [
+                    "Calificaciones"
+                ],
+                "summary": "Subir las calificaciones",
+                "description": "Método para registrar las calificaciones.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "evaluacionId": 1,
+                                "estado": "PUBLICADO",
+                                "calificaciones": [
+                                    {
+                                        "matriculaId": 1,
+                                        "nota": 7.5
+                                    },
+                                    {
+                                        "matriculaId": 2,
+                                        "nota": 9.0
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Las calificaciones se han registrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/calificaciones"
+                                },
+                                "example": {
+                                    "status": "success",
+                                    "message": "Calificaciones guardadas con éxito.",
+                                    "data": [
+                                        {
+                                            "calificacionId": 1,
+                                            "matriculaId": 1,
+                                            "estado": "APROBADO"
+                                        },
+                                        {
+                                            "calificacionId": 2,
+                                            "matriculaId": 2,
+                                            "estado": "APROBADO"
+                                        }
+                                    ]
+                                    
+
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "status": "error",
+                        "description": "Credenciales inválidas"
+                    }
+                }
+            }
+
+        },
+
+        "/api/v1/calificaciones/{calificacionesId}": {
+            "put": {
+                "tags":[
+                    "Calificaciones_cambio"
+                ],
+                "summary": "Cambiar la nota de un estudiante.",
+                "description": "Método para cambiar o actualizar la nota de evaluación de un estudiante.",
+                "parameters": [
+                    {
+                        "name": "calificacionesId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id del la calificación.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "nota": 8,
+                                "descripcion": "Corrección de calificación del parcial"
+                            }
+                        }
+                    }
+                },
+
+                "responses": {
+                    "200": {
+                        "description": "Se cambiaron las calificaciones con éxito.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/calificacionesCambio"
+                                },
+                                "example": {
+                                    "status": "success",
+                                    "message": "Calificación corregida con éxito.",    
+                                    "data": [
+                                        {
+                                            "calificacionId": 1,
+                                            "nota": 8,
+                                            "estado": "APROBADO"
+                                        }
+                                    ]
+
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "status": "error",
+                        "description": "Error al corregir la calificación"
+                    }
+                }
+            }
+        },
+
+        "/api/v1/calificaciones/calificacionesId}": {
+            "delete": {
+                "tags": [
+                    "Calificaciones_eliminar"
+                ],
+                "summary": "Eliminar nota",
+                "description": "Método para eliminar una calificación registrada.",
+                "parameters": [
+                    {
+                        "name": "calificacionesId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id de la calificación.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "descripcion": "Se elimina una calificación"
+                            }
+                        }
+                    }
+                },
+
+                "responses": {
+                "200": {
+                    "description": "Calificación eliminada exitosamente",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "status": "success",
+                                "message": "Calificación eliminada con éxito"
+                            }
+                        }
+                    }
+                },
+
+                "404": {
+                    "status": "error",
+                    "message": "Error al eliminar la calificación"
+                    
+                }
+            }
+
+        },
+
+        "/api/v1/cursos/{cursoId}/informe": {
+            "get": {
+                "tags": [
+                    "Curso_informe"
+                ],
+                "summary": "Imprimir información",
+                "description": "Método para generar un informe imprimible del curso.",
+                "parameters": [
+                    {
+                        "name": "cursoId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id del curso.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+
+                    "201": {
+                        "description": "Informe creado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                "$ref": "#/components/schemas/informe"
+                                },
+                                "example": {
+                                    "status": "success",
+                                    "message": "Informe creado con éxito, listo para imprimir",
+                                    "data": {
+                                        "nombre_informe": "Documento estudiantil",
+                                        "formato": "pdf",
+                                        "asignatura": "Anatomía Humana",
+                                        "docente": "Jonathan Reyes"
+                                    }
+                                }
+                            }
+                        }
+                    }   
+                },
+
+                "400": {
+                    "status": "error",
+                    "message": "Error al generar un informe"
+                }
+            }
+        },
+
+        "/api/v1/cursos/{cursoId}/exportar": {
+            "get": {
+                "tags": [
+                    "Curso_exportar"
+                ],
+                "summary": "Exportar a excel",
+                "description": "Método para exportar a excel.",
+                "parameters": [
+                    {
+                        "name": "cursoId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id del curso.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+
+                "responses": {
+
+                    "201": {
+                        "description": "Archivo de excel creado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                "$ref": "#/components/schemas/reporte"
+                                },
+                                "example": {
+                                    "status": "success",
+                                    "message": "Archivo de excel generado con éxito",
+                                    "data": {
+                                        "nombre_archivo": "Ejemplo reporte de curso",
+                                        "formato": "excel",
+                                        "asignatura": "Anatomía Humana"
+                                    }
+                                }
+                            }
+                        }
+                    }   
+                },
+
+                "400": {
+                    "status": "error",
+                    "message": "Error al generar un exportar"
+                }
+            }
+        },
+
+        "/api/v1/profesor/{profesorId}/contraseña": {
+            "post": {
+                "tags": [
+                    "Contraseña_profesor"
+                ],
+                "summary": "Cambio de contraseña",
+                "description": "Método para actualizar la contraseña de un profesor",
+                "parameters": [
+                    {
+                        "name": "profesorId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id del profesor.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "carnet": "0000001",
+                                "contraseña_actual": "1234",
+                                "contraseña_nueva": "1234"
+                            }
+                        }
+                    }
+                },
+
+                "responses": {
+                    "200": {
+                        "description": "Contraseña actualizada exitosamente",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "status": "success",
+                                    "message": "La contraseña se ha actualizado con éxito"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "status": "error",
+                        "description": "Error al actualizar la contraseña"
+                    }
+                }
+            }
+        },
+
+        "/api/v1/profesor/{profesorId}/email":{
+            "patch": {
+                "tags": [
+                    "Docente"
+                ],
+                "summary": "Actualizar email",
+                "description": "Método para actualizar el correo electrónico de un docente.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id del docente.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "carnet": "0000001",
+                                "correo_actual": "jonathanreyes@hotmail.com",
+                                "correo_nuevo": "jonareyes@hotmail.com"
+                            }
+                        }
+                    }   
+                },
+
+                "responses": {
+                    "200": {
+                        "description": "Correo actualizado exitosamente",
+                        "content": {
+                        "application/json": {
+                            "example": {
+                            "status": "success",
+                            "message": "Correo actualizado con éxito",
+                            "correo": "jonareyes@hotmail.com"
+                            }
+                        }
+                        }
+                    },
+                    "400": {
+                        "status": "error",
+                        "message": "Error al actualizar el correo"
+                    }
+                }
+            }
+        }
+        }
+
+    },
+
+    "components": {
+        "schemas": {
+            "login": {
+                "type": "object",
+                "properities": {
+                    "status": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data":{
+                        "type": "object",
+                        "properities": {
+                            "profesorId": {
+                                "type": "integer"
+                            },
+                            "nombre": {
+                                "type": "string"
+                            },
+                            "correo": {
+                                "type": "string"
+                            },
+                            "carnet": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+
+            },
+            "curso": {
+                "type": "object",
+                "properities": {
+                    "id_curso": {
+                        "type": "integer"
+                    },
+                    "codigo_asignatura": {
+                        "type": "string"
+                    },
+                    "nombre_asignatura": {
+                        "type": "string"
+                    },
+                    "profesor": {
+                        "type": "string"
+                    },
+                    "horario": {
+                        "type": "string"
+                    },
+                    "total_estudiantes": {
+                        "type": "integer"
+                    }
+                }
+            },
+
+            "listEstudiante": {
+                "type": "object",
+                "properties": {
+                    "matriculaId": {
+                        "type": "integer"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "cif": {
+                        "type": "string"
+                    },
+                    "nota": {
+                        "type": "number"
+                    }
+                }
+            },
+
+            "calificaciones": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "calificacionesId": {
+                                "type": "integer"
+                            },
+                            "matriculaId": {
+                                "type": "integer"
+                            },
+                            "nota": {
+                                "type": "number"
+                            },
+                            "estado": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+
+            },
+            "calificacionesCambio":{
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "calificacionesId": {
+                                "type": "integer"
+                            },
+                            "matriculaId": {
+                                "type": "integer"
+                            },
+                            "nota": {
+                                "type": "number"
+                            },
+                            "estado": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+
+            },
+            "informe":{
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "nombre_informe": {
+                                "type": "string"
+                            },
+                            "formato": {
+                                "type": "string"
+                            },
+                            "asignatura": {
+                                "type": "string"
+                            },
+                            "profesor": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            
+            "reporte":{
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                        "nombre_archivo": {
+                            "type": "string"
+                        },
+                        "formato": {
+                            "type": "string"
+                        },
+                        "asignatura": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
+    }
+}
