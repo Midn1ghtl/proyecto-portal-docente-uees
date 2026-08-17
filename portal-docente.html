@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE-edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Portal Docente</title>
+
+        <!--AQUI VA LO DE CSS-->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+        <link rel="stylesheet" href="src/css/styles.css">
+    </head>
+    <body>
+        <button class="toggle" onclick="toggleSidenav()">
+            <i class="fa fa-bars"></i>
+        </button>
+
+<!--Inicio de la barra lateral-->
+    <nav id="sidenav">
+        <!--imagen de usuario-->
+        <div>
+        <img src="src/assets/img/avatar.png" alt="Avatar" class="avatar">
+        </div>
+        <!--botones de navegacion-->
+        <ul>
+            <li><a href="#"><i class="fa fa-save"></i><span>Guardar</span></a></li>
+            <li><a href="#"><i class="fa fa-file-lines"></i><span>Trasladar</span></a></li>
+            <li><a href="#"><i class="fa fa-download"></i><span>Imprimir</span></a></li>
+            <li><a href="#"><i class="fa fa-book"></i><span>Exportar a Excel</span></a></li>
+        </ul>
+        </nav>
+        
+    
+    <main>
+        <header>
+            <h1>Universidad Evangélica de El Salvador</h1>
+        </header>
+        <article>
+            <section>Lorem ipsum dolor sit amet...</section>
+            <section>Lorem ipsum dolor sit amet...</section>
+        </article>
+    </main>
+
+    <!--AQUI VA LO DE JavaScripts-->
+    <script src="src/js/main.js"></script>
+    </body>
+</html>
