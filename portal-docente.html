@@ -8,7 +8,7 @@
 
         <!--AQUI VA LO DE CSS-->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-
+         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="src/css/styles.css">
     </head>
     <body>
@@ -26,25 +26,27 @@
         </div>
         <!--botones de navegacion-->
         <ul>
+            <li><a href="#"><i class="fa fa-save"></i><span>Adjuntar Notas</span></a></li>
             <li><a href="#"><i class="fa fa-save"></i><span>Guardar</span></a></li>
             <li><a href="#"><i class="fa fa-file-lines"></i><span>Trasladar</span></a></li>
             <li><a href="#"><i class="fa fa-download"></i><span>Imprimir</span></a></li>
             <li><a href="#"><i class="fa fa-book"></i><span>Exportar a Excel</span></a></li>
             <li><a href="#"><i class="fa fa-lock"></i><span>Cambio Contraseña</span></a></li>
-         <li><a href="#"><i class="fa fa-envelope"></i><span>Cambio E-mail</span></a></li>
-           <li><a href="#"><i class="fa fa-right-from-bracket"></i><span>Cerrar Sesión</span></a></li>
+            <li><a href="#"><i class="fa fa-envelope"></i><span>Cambio E-mail</span></a></li>
+            <li><a href="#"><i class="fa fa-right-from-bracket"></i><span>Cerrar Sesión</span></a></li>
         </ul>
         </nav>
     
     <main>
-        <header>
+        <div class="container">
+            <header>
             <h1>Universidad Evangélica de El Salvador</h1>
         </header>
          <select class="form-select" aria-label="Ejemplo de select predeterminado">
                   <option selected="" data-sl-id="f147">Seleccione el periodo</option>
                   <option value="1" data-sl-id="f148">I-Ciclo</option>
                   <option value="2" data-sl-id="f149">II-Ciclo</option>
-                  <option value="3" data-sl-id="f150">Extracomntemporaneo</option>
+                  <option value="3" data-sl-id="f150">Extracotemporaneo</option>
                 </select>
                 <select class="form-select" aria-label="Ejemplo de select predeterminado">
                   <option selected="" data-sl-id="f147">Seleccione la materia
@@ -53,10 +55,41 @@
                 </select>
         <article>
             <section>Aparecera listado de estudiantes mediante materia</section>
-        </article>
-    </main>
-
-    <!--AQUI VA LO DE JavaScripts-->
+                  
+            <div class="table-responsive-lg">
+                <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Foto</th>
+                                    <th>CIF</th>
+                                    <th>Nombre</th>
+                                    <th>NOTA 1</th>
+                                    <th>NOTA 2</th>
+                                    <th>NOTA 3</th>
+                                    <th>Reposición</th>
+                                    <th>NOTA FINAL</th>
+                                    <th>ÚLTIMO ACCESO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><image src="src/assets/img/images.png" class="rounded-circle" widht="40" height="40" alt="Foto"></td>
+                                    <td>2025010674</td>
+                                    <td>Oliver Saade</td>
+                                    <td>10</td>
+                                    <td>10</td>
+                                    <td>10</td>
+                                    <td>0</td>
+                                    <td>10</td>
+                                    <td>15/8/2026</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>                           
+        </main>
+<!--AQUI VA LO DE JavaScripts-->
     <script src="src/js/main.js"></script>
     </body>
 </html>
