@@ -25,4 +25,5 @@ Instrucciones de visualización y ejecución
 
 1. Descargar archivo ZIP
 2. Descomprimir y abrir en Visual Studio Code
-3. El archivo de vistas.io se encuentra en formato XML. por lo tanto para ejecutarlo debe abrirlo en Draw.io para poder visualizarlo correctamente.
+3. El archivo de vistas.io se encuentra en formato XML. por lo tanto para ejecutarlo debe en Draw.io para poder visualizarlo correctamente.
+4. Las APIs se encuentran en archivo pdf
