@@ -7,27 +7,35 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
 
         <!-- Bootstrap CSS v5.3.8 -->
-        <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-            rel="stylesheet"
-            integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
-            crossorigin="anonymous"
-        />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
     </head>
 
-    <body>
+    <body class="text-center">
         <header>
             <!-- place navbar here -->
         </header>
-        <main></main>
+        <main>
+      <form class="form-signin">
+      <img src="src/assets/img/logo_uees.png" alt="" width="120" height="120">
+      <h1 class="h3 mb-3 font-weight-normal">Digite sus credenciales</h1>
+      <label for="inputEmail" class="sr-only">Usuario</label>
+      <input type="email" id="inputEmail" class="form-control" placeholder="Usuario" required autofocus>
+      <label for="inputPassword" class="sr-only">Contraseña</label>
+      <input type="password" id="inputPassword" class="form-control" placeholder="Contraseña" required>
+      <div class="checkbox mb-3">
+        <label>
+          <input type="checkbox" value="remember-me"> Recordarme
+        </label>
+      </div>
+      <button type="button" class="btn btn-primary btn-lg">Ingresar</button>
+      <p class="mt-5 mb-3 text-muted">&copy; Todos los derechos reservados 2026</p>
+    </form>
+
+        </main>
         <footer>
             <!-- place footer here -->
         </footer>
         <!-- Bootstrap JavaScript Bundle (includes Popper) -->
-        <script
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-            crossorigin="anonymous"
-        ></script>
-    </body>
+        <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 </html>
