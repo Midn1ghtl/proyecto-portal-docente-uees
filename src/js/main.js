@@ -1,11 +1,13 @@
 function toggleSidenav() {
-  const sidenav = document.querySelector("#sidenav");
+  const barraLateral= document.querySelector(".barra-lateral");
+  const main= document.querySelector("main");
 
   if (window.innerWidth <= 768) {
-    sidenav.classList.remove("min");
-    sidenav.classList.toggle("active");
+    barraLateral.classList.toggle("activa");
   } else {
-    sidenav.classList.remove("active");
-    sidenav.classList.toggle("min");
+    barraLateral.classList.toggle("min");
+    main.classList.toggle("expandido");
   }
 }
+
+

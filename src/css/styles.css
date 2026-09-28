@@ -3,6 +3,7 @@
   padding: 0;
   box-sizing: border-box;
 }
+        
 
 .avatar  {
   width: 100px;
@@ -75,14 +76,25 @@ main {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+
+
+
+  background-color: #cf8bdf;
+
 }
 
 header {
   height: auto;
   display: flex;
   align-items: center;
-  padding: 20px;
   border-bottom: 1px solid #ccc;
+  color: #cfe5f9;
+  
+  padding: 20px;
+
+  border: 2px solid #013563;
+  background-color: #4d8ed3;
+  margin: 10px;
 }
 
 article {

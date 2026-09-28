@@ -1,7 +1,7 @@
 
 {
     "paths": {
-        "/api/v1/login/profesor": {
+        "/api/v1/login": {
             "post": {
                 "tags": [
                     "Inicio_sesion"
@@ -525,13 +525,13 @@
                     "200": {
                         "description": "Correo actualizado exitosamente",
                         "content": {
-                        "application/json": {
-                            "example": {
-                            "status": "success",
-                            "message": "Correo actualizado con éxito",
-                            "correo": "jonareyes@hotmail.com"
+                            "application/json": {
+                                "example": {
+                                "status": "success",
+                                "message": "Correo actualizado con éxito",
+                                "correo": "jonareyes@hotmail.com"
+                                }
                             }
-                        }
                         }
                     },
                     "400": {
@@ -647,6 +647,7 @@
                 }
 
             },
+
             "calificacionesCambio":{
                 "type": "object",
                 "properties": {
@@ -676,6 +677,7 @@
                 }
 
             },
+
             "informe":{
                 "type": "object",
                 "properties": {
@@ -717,19 +719,19 @@
                     "data": {
                         "type": "object",
                         "properties": {
-                        "nombre_archivo": {
-                            "type": "string"
-                        },
-                        "formato": {
-                            "type": "string"
-                        },
-                        "asignatura": {
-                            "type": "string"
+                            "nombre_archivo": {
+                                "type": "string"
+                            },
+                            "formato": {
+                                "type": "string"
+                            },
+                            "asignatura": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             }
         }
-    }
     }
 }

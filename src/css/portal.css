@@ -1,0 +1,363 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 11px;
+    width: 100%;
+    max-width: 1500px;
+    padding: 0;
+}
+    
+.div-header {
+    grid-column: span 4 / span 4;
+    width: 100%;
+    
+}
+
+.div-opciones {
+    grid-column: span 4 / span 4;
+    grid-row: span 2 / span 2;
+    grid-row-start: 2;
+}
+
+.div-asignaturas {
+    grid-column: span 2 / span 2;
+    grid-row: span 2 / span 2;
+    grid-row-start: 4;
+}
+
+.div-calendario {
+    grid-column: span 2 / span 2;
+    grid-row: span 2 / span 2;
+    grid-column-start: 3;
+    grid-row-start: 4;
+}
+
+.div-aviso {
+    grid-column: span 4 / span 4;
+    grid-row-start: 6;
+}
+
+.div-imagen {
+    grid-column: span 4 / span 4;
+    grid-row-start: 7;
+}
+
+
+html,
+body {
+    margin: 0;
+    min-height: 100%;
+    font-family: Segoe UI, Arial, sans-serif;
+    background: #f7fbff;
+    color:#080909;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    overflow: auto;
+}
+
+.barra-lateral {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 250px;
+    background: #0d144f;
+    transition: width 0.3s ease, left 0.3s ease;
+    z-index: 1000;
+    color: azure;
+}
+
+.barra-lateral.min {
+    width: 70px;
+}
+
+.barra-lateral.min .perfil,
+.barra-lateral.min .sidenav span {
+    display: none;
+}
+
+main {
+    flex: 1;
+    width: 100%;
+    transition: margin-left 0.3s;
+    min-height: 100vh;
+}
+
+
+.toggle {
+    display: flex;
+    left: 10px;
+    top: 10px;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: white;
+    border: 0;
+    padding: 10px;
+    font-size: 18px;
+    margin: 15px 0 10px 10px;
+}
+
+.toggle:hover {
+    background-color: #33335b;
+
+}
+
+.perfil{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+
+}
+
+.avatar{
+    display: flex;
+    width: 100px;
+    height: 100px;
+    align-items: center;
+    border-radius: 50%;
+    margin-bottom: 20px;
+}
+
+.perfil ul{
+    text-align: center;
+    padding: 0;
+    margin: 4px;
+}
+
+.sidenav {
+    padding: 10px;
+    margin-top: 20px;
+    display: grid;
+}
+
+.sidenav a {
+    display: flex;
+    gap: 15px;
+    padding: 0 15px;
+    height: 50px;
+    white-space: nowrap;
+    color:azure;
+    transition: background 0.20s, padding 0.28s;
+    align-items: center;
+    border-radius: 8px;
+
+}
+
+.sidenav a:hover{
+    background: #ffffff1a;
+}
+
+
+
+.header1 {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 40px;
+    min-height: 230px;
+    overflow: hidden;
+    background: #6f8ea9;
+    width: 100%;
+}
+
+.header1 h1 {
+    font-size: 1.1rem;
+    font-weight: 400;
+    margin: 0;
+}
+
+.header1 h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.header1 p {
+    font-size: 1rem;
+    font-weight: 400;
+    margin: 0;
+}
+
+.opciones nav {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+}
+
+.opciones {
+    margin: 30px 20px 20px 20px;
+}
+
+/* Estilo de cada tarjeta / botón */
+.opciones nav a {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    padding: 25px 15px;
+    background-color: #e8f1fd;
+    color: #0b3c5d;
+    
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: 16px;
+    
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.panel-bloque {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    margin: 20px 20px 20px 20px;
+}
+
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.panel-header h2 {
+    font-size: 1.5rem;
+    color: #0b3c5d;
+    font-weight: 700;
+    margin: 0;
+}
+
+.panel-header a {
+    color: #1877f2;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.asig-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.panel-bloque .asignatura {
+    background-color: #ececf4;
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+
+.panel-bloque .asignatura h4 {
+    font-size: 1.1rem;
+    margin: 0 0 4px 0;
+    color: #0b3c5d;
+}
+
+.panel-bloque .asignatura p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.calendario {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+}
+
+
+.calendario img {
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    object-fit: contain;
+    border-radius: 12px;
+}
+
+.aviso {
+    background-color: #ffffff;
+    border-radius: 20px;
+    padding: 30px;
+    margin: 30px 20px 20px 20px;
+}
+
+.aviso h2 {
+    font-size: 1.5rem;
+    color: #0b3c5d;
+    font-weight: 700;
+    margin: 0;
+    padding-bottom: 5px;
+}
+
+.aviso ul {
+    font-size: 15px;
+    margin: 0 0 4px 0;
+    color: #151a1e;
+}
+
+
+@media (max-width: 768px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+
+    .div-asignaturas,
+    .div-calendario {
+        grid-column: 1 / -1;
+        grid-row-start: auto;
+    }
+
+    .barra-lateral {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 70px;
+        z-index: 2000;
+    }
+
+    .barra-lateral .perfil,
+    .barra-lateral .sidenav span {
+        display: none;
+    }
+
+    .barra-lateral.activa {
+        left: 0;
+        width: 250px;
+        box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .barra-lateral.activa .perfil,
+    .barra-lateral.activa .sidenav span {
+        display: flex;
+    }
+
+    main,
+    main.expandido {
+        margin-left: 70px;
+        width: calc(100% - 70px);
+    }
+}
