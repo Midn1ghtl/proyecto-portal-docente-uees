@@ -1,41 +1,40 @@
-<!doctype html>
-<html lang="en" data-bs-theme="light">
-    <head>
-        <title>Portal-docente</title>
-        <!-- Required meta tags -->
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistema Portal Docente</title>
+  <link rel="stylesheet" href="src/css/iniciostyle.css">
+</head>
+<body>
 
-        <!-- Bootstrap CSS v5.3.8 -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
-    </head>
+  <!-- Lado izquierdo: panel azul (en el celular se muestra arriba) -->
+  <div class="lado-azul">
+    <img src="src/assets/img/Historia.jpg" alt="Imagen de fondo campus UEES" class="imagen-fondo">
 
-    <body class="text-center">
-        <header>
-            <!-- place navbar here -->
-        </header>
-        <main>
-      <form class="form-signin">
-      <img src="src/assets/img/logo_uees.png" alt="" width="120" height="120">
-      <h1 class="h3 mb-3 font-weight-normal">Digite sus credenciales</h1>
-      <label for="inputEmail" class="sr-only">Usuario</label>
-      <input type="email" id="inputEmail" class="form-control" placeholder="Usuario" required autofocus>
-      <label for="inputPassword" class="sr-only">Contraseña</label>
-      <input type="password" id="inputPassword" class="form-control" placeholder="Contraseña" required>
-      <div class="checkbox mb-3">
-        <label>
-          <input type="checkbox" value="remember-me"> Recordarme
-        </label>
-      </div>
-      <button type="button" class="btn btn-primary btn-lg">Ingresar</button>
-      <p class="mt-5 mb-3 text-muted">&copy; Todos los derechos reservados 2026</p>
+    <h1>SISTEMA PORTAL DOCENTE</h1>
+  </div>
+
+  <!-- Lado derecho: logo y formulario -->
+  <div class="lado-form">
+    <img src="src/assets/img/logo_uees.png" alt="Logo de la universidad" class="logo-uees">
+    <p class="logo">EDUCACIÓN DE CALIDAD<br>CON VALORES CRISTIANOS</p>
+
+    <form class="tarjeta" onsubmit="return ingresar('usuario1', 'clave1')">
+      <h2>Digite sus credenciales</h2>
+
+      <label for="usuario1">Usuario</label>
+      <input type="text" id="usuario1" placeholder="Usuario">
+
+      <label for="clave1">Contraseña</label>
+      <input type="password" id="clave1" placeholder="Contraseña">
+
+      <label class="recordar"><input type="checkbox"> Recordarme</label>
+
+      <button type="submit">Ingresar</button>
     </form>
+  </div>
 
-        </main>
-        <footer>
-            <!-- place footer here -->
-        </footer>
-        <!-- Bootstrap JavaScript Bundle (includes Popper) -->
-        <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="src/js/iniciojavascript.js"></script>
+</body>
 </html>
