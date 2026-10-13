@@ -129,3 +129,28 @@ body {
   background-color: #093f66;
 }
 
+@media (max-width:768px){
+  .main .center .searh{
+    width: 500px;
+  }
+}
+
+@media (max-width:583px){
+  .main .center span{
+    left: 44%;
+    top:-52px;
+  }
+}
+
+@media (max-width: 580px) {
+  .main .center .search {
+    width: 100%;
+  }
+  .main .center .links{
+    display: none;
+  }
+  .main .top .fa {
+    cursor: pointer;
+    visibility: visible;
+  }
+}
