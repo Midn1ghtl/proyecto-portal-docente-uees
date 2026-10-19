@@ -202,7 +202,6 @@ main {
     margin: 30px 20px 20px 20px;
 }
 
-/* Estilo de cada tarjeta / botón */
 .opciones nav a {
     flex: 1;
     display: flex;
@@ -316,6 +315,19 @@ main {
     font-size: 15px;
     margin: 0 0 4px 0;
     color: #151a1e;
+}
+
+.imagen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.imagen-final {
+    width: 100%;
+    height: auto;
+
 }
 
 
