@@ -66,7 +66,6 @@
                             "type": "integer"
                         }
                     }
-
                 ],
 
                 "responses": {
@@ -87,9 +86,7 @@
                                         "profesor": "Jonathan Reyes",
                                         "horario": "Martes 6:00 - 8:00 PM",
                                         "total_estudiantes": 19
-
                                     }
-
                                 }
                             }
                         }
@@ -318,22 +315,21 @@
                 },
 
                 "responses": {
-                "200": {
-                    "description": "Calificación eliminada exitosamente",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "status": "success",
-                                "message": "Calificación eliminada con éxito"
+                    "200": {
+                        "description": "Calificación eliminada exitosamente",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "status": "success",
+                                    "message": "Calificación eliminada con éxito"
+                                }
                             }
                         }
+                    },
+                    "404": {
+                        "status": "error",
+                        "message": "Error al eliminar la calificación"
                     }
-                },
-
-                "404": {
-                    "status": "error",
-                    "message": "Error al eliminar la calificación"
-                    
                 }
             }
 
@@ -358,13 +354,12 @@
                     }
                 ],
                 "responses": {
-
                     "201": {
                         "description": "Informe creado exitosamente",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                "$ref": "#/components/schemas/informe"
+                                    "$ref": "#/components/schemas/informe"
                                 },
                                 "example": {
                                     "status": "success",
@@ -378,13 +373,12 @@
                                 }
                             }
                         }
-                    }   
-                },
-
-                "400": {
-                    "status": "error",
-                    "message": "Error al generar un informe"
-                }
+                    }, 
+                    "400": {
+                        "status": "error",
+                        "message": "Error al generar un informe"
+                    }
+                }      
             }
         },
 
@@ -408,13 +402,12 @@
                 ],
 
                 "responses": {
-
                     "201": {
                         "description": "Archivo de excel creado exitosamente",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                "$ref": "#/components/schemas/reporte"
+                                    "$ref": "#/components/schemas/reporte"
                                 },
                                 "example": {
                                     "status": "success",
@@ -468,7 +461,6 @@
                         }
                     }
                 },
-
                 "responses": {
                     "200": {
                         "description": "Contraseña actualizada exitosamente",
@@ -527,9 +519,9 @@
                         "content": {
                             "application/json": {
                                 "example": {
-                                "status": "success",
-                                "message": "Correo actualizado con éxito",
-                                "correo": "jonareyes@hotmail.com"
+                                    "status": "success",
+                                    "message": "Correo actualizado con éxito",
+                                    "correo": "jonareyes@hotmail.com"
                                 }
                             }
                         }
@@ -541,8 +533,6 @@
                 }
             }
         }
-        }
-
     },
 
     "components": {
