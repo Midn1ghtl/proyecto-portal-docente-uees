@@ -1,5 +1,56 @@
 
 {
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API del portal docente de la Universidad Evangélica de El Salvador",
+        "version": "3.0.0",
+        "description": "Esta API proporciona los endpoints necesarios para el portal docente. Permite: inciar sesión, obtener información de cursos, gestionar calificaciones, generar informes, exportar a excel y actualizar información del docente."
+    },
+    "server":[
+        {
+            "url": "http://localhost:3000",
+            "description": "backend local para desarrollo"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Inicio_sesion",
+            "description": "Endpoints relacionados con el inicio de sesión de los docentes."
+        },
+        {
+            "name": "Curso",
+            "description": "Endpoints relacionados con la gestión de cursos."
+        },
+        {
+            "name": "Calificaciones",
+            "description": "Endpoints relacionados con la gestión de calificaciones."
+        },
+        {
+            "name": "Calificaciones_cambio",
+            "description": "Endpoints relacionados con el cambio o actualización de calificaciones."
+        },
+        {
+            "name": "Calificaciones_eliminar",
+            "description": "Endpoints relacionados con la eliminación de calificaciones."
+        },
+        {
+            "name": "Curso_informe",
+            "description": "Endpoints relacionados con la generación de informes de cursos."
+        },
+        {
+            "name": "Curso_exportar",
+            "description": "Endpoints relacionados con la exportación de información a Excel."
+        },
+        {
+            "name": "Contraseña_profesor",
+            "description": "Endpoints relacionados con el cambio de contraseña del docente."
+        },
+        {
+            "name": "Docente",
+            "description": "Endpoints relacionados con la actualización de información del docente."
+        }
+    ],
+
     "paths": {
         "/api/v1/login": {
             "post": {
@@ -12,9 +63,15 @@
                     "required": true,
                     "content": {
                         "application/json": {
+
                             "example": {
                                 "carnet": "0000001",
                                 "contraseña": "1234"
+                            },
+
+
+                            "schema":{
+                                "$ref": "#/components/schemas/loginRequest"
                             }
                         }
                     }
@@ -27,6 +84,9 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/login"
                                 },
+
+
+                            
                                 "example": {
                                     "status": "success",
                                     "message": "Inicio de sesión éxitoso.",
@@ -42,7 +102,26 @@
                     },
                     "401": {
                         "status": "error",
-                        "description": "Credenciales inválidas"
+                        "description": "Credenciales inválidas",
+                        "content": {
+                            "application/json":{
+                                "schema":{
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "400":{
+                        "status": "error",
+                        "description": "Datos inválidos",
+                        "content": {
+                            "application/json":{
+                                "schema":{
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+
                     }
                 }
             }
@@ -52,9 +131,9 @@
         "/api/v1/profesor/{profesorId}/cursos": {
             "get": {
                 "tags": [
-                    "Curso"
+                    "Cursos"
                 ],
-                "Summary": "Obtener la información de un curso",
+                "summary": "Obtener la información de los cursos",
                 "description": "Método para obtener la información detallada de un curso.",
                 "parameters": [
                     {
@@ -63,7 +142,8 @@
                         "required": true,
                         "description": "Id del docente.",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum": 1
                         }
                     }
                 ],
@@ -76,6 +156,9 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/curso"
                                 },
+
+
+
                                 "example": {
                                     "status": "success",
                                     "message": "Curso encontrado",
@@ -93,17 +176,33 @@
                     },
                     "404": {
                         "status": "error",
-                        "description": "No se encontró el curso solicitado"
+                        "description": "No se encontró el curso solicitado",
+                        "content": {
+                            "application/json":{
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
-                }
+                },
+                "security":[
+                    {
+                        "bearerAuth":[]
+                    }
+                ]
             }
         },
 
+        "/api/v1/cursos/{cursoId}":{
 
-        "/api/v1/curso/{cursoId}/estudiantes": {
+        },
+
+
+        "/api/v1/cursos/{cursoId}/estudiantes": {
             "get": {
                 "tags": [
-                    "Curso"
+                    "Estudiantes"
                 ],
                 "summary": "Obtener la lista de estudiantes de un curso",
                 "description": "Método para obtener la lista de estudiantes matriculados en el curso.",
@@ -114,7 +213,8 @@
                         "required": true,
                         "description": "Id del curso.",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum": 1
                         }
                     }
                 ],
@@ -126,6 +226,11 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/listEstudiante"
                                 },
+
+
+
+
+
                                 "example": {
                                     "status": "success",
                                     "message": "Lista de estudiantes obtenida exitosamente",    
@@ -150,10 +255,26 @@
                     },
                     "404": {
                         "status": "error",
-                        "description": "Curso no encontrado"
+                        "description": "Curso no encontrado",
+                        "content":{
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
-                }
+                },
+                "security":[
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
+        },
+        
+        "/api/v1/cursos/{cursoId}/estudiantes/carga-masiva":{
+            
         },
 
         "/api/v1/calificaciones": {
