@@ -1,0 +1,28 @@
+{
+  "name": "proyecto-portal-docente-uees",
+  "version": "1.0.0",
+  "description": "Universidad Evangélica de El Salvador",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Midn1ghtl/proyecto-portal-docente-uees.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Midn1ghtl/proyecto-portal-docente-uees/issues"
+  },
+  "homepage": "https://github.com/Midn1ghtl/proyecto-portal-docente-uees#readme",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "dotenv": "^18.0.9"
+  }
+}
