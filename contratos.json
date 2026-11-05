@@ -18,36 +18,28 @@
             "description": "Endpoints relacionados con el inicio de sesión de los docentes."
         },
         {
-            "name": "Curso",
-            "description": "Endpoints relacionados con la gestión de cursos."
+            "name": "Docente",
+            "description": "Endpoints relacionados con la información del docente."
+        },
+        {
+            "name": "Cursos",
+            "description": "Endpoints relacionados con la información de los cursos."
+        },
+        {
+            "name": "Estudiantes",
+            "description": "Endpoints relacionados con la gestión de estudiantes."
         },
         {
             "name": "Calificaciones",
             "description": "Endpoints relacionados con la gestión de calificaciones."
         },
         {
-            "name": "Calificaciones_cambio",
-            "description": "Endpoints relacionados con el cambio o actualización de calificaciones."
+            "name": "Publicación",
+            "description": "Endpoints relacionados con la publicación de calificaciones."
         },
         {
-            "name": "Calificaciones_eliminar",
-            "description": "Endpoints relacionados con la eliminación de calificaciones."
-        },
-        {
-            "name": "Curso_informe",
-            "description": "Endpoints relacionados con la generación de informes de cursos."
-        },
-        {
-            "name": "Curso_exportar",
-            "description": "Endpoints relacionados con la exportación de información a Excel."
-        },
-        {
-            "name": "Contraseña_profesor",
-            "description": "Endpoints relacionados con el cambio de contraseña del docente."
-        },
-        {
-            "name": "Docente",
-            "description": "Endpoints relacionados con la actualización de información del docente."
+            "name": "Reportes",
+            "description": "Endpoints relacionados con la generación de reportes e informes."
         }
     ],
 
@@ -63,13 +55,6 @@
                     "required": true,
                     "content": {
                         "application/json": {
-
-                            "example": {
-                                "carnet": "0000001",
-                                "contraseña": "1234"
-                            },
-
-
                             "schema":{
                                 "$ref": "#/components/schemas/loginRequest"
                             }
@@ -83,30 +68,6 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/login"
-                                },
-
-
-                            
-                                "example": {
-                                    "status": "success",
-                                    "message": "Inicio de sesión éxitoso.",
-                                    "data":{
-                                        "profesorId": 1,
-                                        "nombre": "Jonathan Reyes",
-                                        "correo": "jonathanreyes@hotmail.com",
-                                        "carnet": "0000001"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "status": "error",
-                        "description": "Credenciales inválidas",
-                        "content": {
-                            "application/json":{
-                                "schema":{
-                                    "$ref": "#/components/schemas/Error"
                                 }
                             }
                         }
@@ -121,7 +82,6 @@
                                 }
                             }
                         }
-
                     }
                 }
             }
@@ -154,22 +114,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/curso"
-                                },
-
-
-
-                                "example": {
-                                    "status": "success",
-                                    "message": "Curso encontrado",
-                                    "data": {
-                                        "cursoId": 1,
-                                        "codigo_asignatura": "ATH-2026",
-                                        "nombre_asignatura": "Anatomía Humana",
-                                        "profesor": "Jonathan Reyes",
-                                        "horario": "Martes 6:00 - 8:00 PM",
-                                        "total_estudiantes": 19
-                                    }
+                                    "$ref": "#/components/schemas/cursoRes"
                                 }
                             }
                         }
@@ -195,9 +140,47 @@
         },
 
         "/api/v1/cursos/{cursoId}":{
-
+            "get":{
+                "tags":[
+                    "Cursos"
+                ],
+                "summary": "Obtener detalles del curso",
+                "parameters": [
+                    {
+                        "name": "cursoId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type":"integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses":{
+                    "200": {
+                        "description": "Se encontró el curso solicitado con éxito.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/curso"
+                                }
+                            }
+                        }
+                    },
+                    "404":{
+                        "status": "error",
+                        "description": "No se encontró el curso solicitado",
+                        "content": {
+                            "application/json":{
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         },
-
 
         "/api/v1/cursos/{cursoId}/estudiantes": {
             "get": {
@@ -225,30 +208,6 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/listEstudiante"
-                                },
-
-
-
-
-
-                                "example": {
-                                    "status": "success",
-                                    "message": "Lista de estudiantes obtenida exitosamente",    
-                                    "data": [
-                                        {
-                                            "id_matricula": 1,
-                                            "nombre": "Sara Molina",
-                                            "cif": "2025011280",
-                                            "nota": 7.5
-                                        },
-                                        {
-                                            "id_matricula": 1,
-                                            "nombre": "Monica Torres",
-                                            "cif": "2025011909",
-                                            "nota": 9
-                                        }
-                                    ]
-
                                 }
                             }
                         }
@@ -273,91 +232,209 @@
             }
         },
         
-        "/api/v1/cursos/{cursoId}/estudiantes/carga-masiva":{
-            
-        },
-
-        "/api/v1/calificaciones": {
-            "post": {
-                "tags": [
-                    "Calificaciones"
+        "/api/v1/cursos/{cursoId}/estudiantes/cargaMasiva":{
+            "post":{
+                "tags":[
+                    "Estudiantes"
                 ],
-                "summary": "Subir las calificaciones",
-                "description": "Método para registrar las calificaciones.",
-                "requestBody": {
+                "summary": "Carga masiva de estudiantes",
+                "parameters":[
+                    {
+                        "name": "cursoId",
+                        "in": "path",
+                        "required": true,
+                        "schema":{
+                            "type": "integer"
+                        },
+                        "description": "Identificador del curso"
+                    }
+                ],
+                "requestBody":{
                     "required": true,
                     "content": {
-                        "application/json": {
-                            "example": {
-                                "evaluacionId": 1,
-                                "estado": "PUBLICADO",
-                                "calificaciones": [
+                        "multipart/form-data":{
+                            "schema":{
+                                "type": "object",
+                                "required":[
+                                    "archivo"
+                                ],
+                                "properties":{
+                                    "archivo":{
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Archivo .xlsx o .csv"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses":{
+                    "200":{
+                        "description": "Estudiantes incorporados",
+                        "content":{
+                            "application/json":{
+                                "schema": {
+                                    "$ref":"#/components/schemas/cargaEstudiantes"
+                                }
+                            }
+                        }
+                    },
+                    "400":{
+                        "description": "Archivo inválido",
+                        "content": {
+                            "application/json":{
+                                "schema":{
+                                    "$ref":"#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/api/v1/cursos/{cursoId}/calificaciones":{
+            "get": {
+                "tags":[
+                    "Calificaciones"
+                ],
+                "summary": "Obtener las calificaciones",
+                "description": "Método para obtener las calificaciones de los estudiantes",
+                "parameter": [
+                    {
+                        "name":"cursoId",
+                        "in": "path",
+                        "required": true,
+                        "schema":{
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses":{
+                    "200":{
+                        "description":"Notas y estados",
+                        "content":{
+                            "application/json":{
+                                "schema":{
+                                    "$ref":"#/components/schemas/calificacionesRes"
+                                }
+                            }
+                        }
+                    },
+                    "404":{
+                        "description": "Curso inexistente",
+                        "content":{
+                            "application/json":{
+                                "schema":{
+                                    "$ref":"#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security":[
+                    {
+                        "bearerAuth":[]
+                    }
+                ]
+            },
+            "post":{
+                "tags":[
+                    "Calificaciones"
+                ],
+                "summary": "Guardar las calificaciones",
+                "description": "Método para guardar las calificaciones",
+                "parameters":[
+                    {
+                        "name":"cursoId",
+                        "in": "path",
+                        "required": true,
+                        "schema":{
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "requestBody":{
+                    "required": true,
+                    "content":{
+                        "application/json":{
+                            "schema":{
+                                "$ref":"#/components/schemas/calificacionesGuardar"
+                            },
+                            "example":{
+                                "calificaciones":[
                                     {
                                         "matriculaId": 1,
-                                        "nota": 7.5
-                                    },
-                                    {
-                                        "matriculaId": 2,
-                                        "nota": 9.0
+                                        "nota1": 8.5,
+                                        "nota2": 7.5,
+                                        "nota3": 9,
+                                        "reposición": null
                                     }
                                 ]
                             }
                         }
                     }
                 },
-                "responses": {
-                    "200": {
-                        "description": "Las calificaciones se han registrado.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/calificaciones"
-                                },
-                                "example": {
-                                    "status": "success",
-                                    "message": "Calificaciones guardadas con éxito.",
-                                    "data": [
-                                        {
-                                            "calificacionId": 1,
-                                            "matriculaId": 1,
-                                            "estado": "APROBADO"
-                                        },
-                                        {
-                                            "calificacionId": 2,
-                                            "matriculaId": 2,
-                                            "estado": "APROBADO"
-                                        }
-                                    ]
-                                    
-
+                "responses":{
+                    "200":{
+                        "description": "Calificaciones guardadas como borrador, se calcula la nota final automáticamente",
+                        "content":{
+                            "application/json":{
+                                "schema":{
+                                    "$ref":"#/components/schemas/calificacionesRes"
                                 }
                             }
                         }
                     },
-                    "400": {
-                        "status": "error",
-                        "description": "Credenciales inválidas"
+                    "400":{
+                        "description":"Datos inválidos",
+                        "content":{
+                            "application/json":{
+                                "schema":{
+                                    "$ref":"#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
-                }
+                },
+                "security":[
+                    {
+                        "bearerAuth":[]
+                    }
+                ]
             }
-
         },
 
-        "/api/v1/calificaciones/{calificacionesId}": {
-            "put": {
+
+        "/api/v1/cursos/{cursoId}/calificaciones/{calificacionId}": {
+            "patch": {
                 "tags":[
-                    "Calificaciones_cambio"
+                    "Calificaciones"
                 ],
                 "summary": "Cambiar la nota de un estudiante.",
                 "description": "Método para cambiar o actualizar la nota de evaluación de un estudiante.",
                 "parameters": [
                     {
+                        "name": "cursoId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id del curso.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum":1
+                        }
+                    },
+                    {
                         "name": "calificacionesId",
                         "in": "path",
                         "required": true,
-                        "description": "Id del la calificación.",
+                        "description": "Id de la calificación.",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum":1
                         }
                     }
                 ],
@@ -366,9 +443,8 @@
                     "required": true,
                     "content": {
                         "application/json": {
-                            "example": {
-                                "nota": 8,
-                                "descripcion": "Corrección de calificación del parcial"
+                            "schema":{
+                                "$ref":"#/components/schemas/notaCambio"
                             }
                         }
                     }
@@ -381,88 +457,166 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/calificacionesCambio"
-                                },
-                                "example": {
-                                    "status": "success",
-                                    "message": "Calificación corregida con éxito.",    
-                                    "data": [
-                                        {
-                                            "calificacionId": 1,
-                                            "nota": 8,
-                                            "estado": "APROBADO"
-                                        }
-                                    ]
-
                                 }
                             }
                         }
                     },
-                    "404": {
+                    "400": {
                         "status": "error",
-                        "description": "Error al corregir la calificación"
+                        "description": "Valor inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    } 
+                },
+                "security":[
+                    {
+                        "bearerAuth":[]
                     }
-                }
-            }
-        },
-
-        "/api/v1/calificaciones/calificacionesId}": {
-            "delete": {
+                ]
+            },
+            "delete":{
                 "tags": [
-                    "Calificaciones_eliminar"
+                    "Calificaciones"
                 ],
                 "summary": "Eliminar nota",
-                "description": "Método para eliminar una calificación registrada.",
                 "parameters": [
                     {
-                        "name": "calificacionesId",
+                        "name": "cursoId",
                         "in": "path",
                         "required": true,
-                        "description": "Id de la calificación.",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "calificacionId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
                         }
                     }
                 ],
-
-                "requestBody": {
-                    "required": false,
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "descripcion": "Se elimina una calificación"
+                "responses": {
+                    "200": {
+                        "description": "Nota eliminada",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "description": "Nota no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
                             }
                         }
                     }
                 },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
 
+        "/api/v1/cursos/{cursoId}/registros/{registro}/publicacion": {
+            "post": {
+                "tags": [
+                    "Publicación"
+                ],
+                "summary": "Subir las calificaciones de un registro.",
+                "description": "Método para registrar las calificaciones.",
+                "parameters": [
+                    {
+                        "name": "cursoId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "registro",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2,
+                                3
+                            ]
+                        }
+                    }
+                ],
+                
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "confirmar": {
+                                        "type": "boolean",
+                                        "enum": [
+                                            true
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "confirmar"
+                                ]
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
-                        "description": "Calificación eliminada exitosamente",
+                        "description": "Las calificaciones se han registrado.",
                         "content": {
                             "application/json": {
-                                "example": {
-                                    "status": "success",
-                                    "message": "Calificación eliminada con éxito"
+                                "schema": {
+                                    "$ref": "#/components/schemas/publicacionRes"
                                 }
                             }
                         }
                     },
-                    "404": {
-                        "status": "error",
-                        "message": "Error al eliminar la calificación"
+                    "422": {
+                        "description": "Existen notas inválidas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
-                }
-            }
-
-        },
-
-        "/api/v1/cursos/{cursoId}/informe": {
-            "get": {
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete":{
                 "tags": [
-                    "Curso_informe"
+                    "Publicación"
                 ],
-                "summary": "Imprimir información",
-                "description": "Método para generar un informe imprimible del curso.",
+                "summary": "Quitar publicación de un registro.",
+                "description": "Método para eliminar una publicación.",
                 "parameters": [
                     {
                         "name": "cursoId",
@@ -470,91 +624,165 @@
                         "required": true,
                         "description": "Id del curso.",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "registro",
+                        "in": "path",
+                        "required": true,
+                        "description": "Número del registro.",
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2,
+                                3
+                            ]
                         }
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Informe creado exitosamente",
+                    "200": {
+                        "description": "Publicación eliminada exitosamente",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "status": "error",
+                        "description": "Error al eliminar la publicación",
                         "content": {
                             "application/json": {
+                                "schema":{
+                                    "$ref":"#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },        
+
+        "/api/v1/cursos/{cursoId}/informe": {
+            "get": {
+                "tags": [
+                    "Reportes"
+                ],
+                "summary": "Descargar informe pdf del curso",
+                "description": "Método para generar un informe pdf del curso.",
+                "parameters": [
+                    {
+                        "name": "cursoId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Id del curso.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informe creado exitosamente",
+                        "content": {
+                            "application/pdf": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/informe"
-                                },
-                                "example": {
-                                    "status": "success",
-                                    "message": "Informe creado con éxito, listo para imprimir",
-                                    "data": {
-                                        "nombre_informe": "Documento estudiantil",
-                                        "formato": "pdf",
-                                        "asignatura": "Anatomía Humana",
-                                        "docente": "Jonathan Reyes"
-                                    }
+                                    "type": "string",
+                                    "format": "binary"
                                 }
                             }
                         }
                     }, 
                     "400": {
                         "status": "error",
-                        "message": "Error al generar un informe"
+                        "description": "Error al generar un informe",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
-                }      
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
 
         "/api/v1/cursos/{cursoId}/exportar": {
             "get": {
                 "tags": [
-                    "Curso_exportar"
+                    "Reportes"
                 ],
-                "summary": "Exportar a excel",
-                "description": "Método para exportar a excel.",
+                "summary": "Exportar calificaciones del curso a Excel",
+                "description": "Descarga un archivo .xlsx con el listado de estudiantes y sus calificaciones: nota1, nota2, nota3, reposicion y notaFinal. Solo para docentes autorizados del curso. La exportación no modifica las notas.",
                 "parameters": [
                     {
                         "name": "cursoId",
                         "in": "path",
                         "required": true,
-                        "description": "Id del curso.",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum": 1
                         }
                     }
                 ],
-
                 "responses": {
-                    "201": {
-                        "description": "Archivo de excel creado exitosamente",
-                        "content": {
-                            "application/json": {
+                    "200": {
+                        "description": "Archivo Excel de calificaciones",
+                        "headers": {
+                            "content-disposition": {
+                                "description": "Nombre sugerido del archivo descargado",
                                 "schema": {
-                                    "$ref": "#/components/schemas/reporte"
+                                    "type": "string"
                                 },
-                                "example": {
-                                    "status": "success",
-                                    "message": "Archivo de excel generado con éxito",
-                                    "data": {
-                                        "nombre_archivo": "Ejemplo reporte de curso",
-                                        "formato": "excel",
-                                        "asignatura": "Anatomía Humana"
-                                    }
+                                "example": "attachment; filename=\"calificaciones_curso_1.xlsx\""
+                            }
+                        },
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
                                 }
                             }
                         }
-                    }   
+                    },
+                    "404": {
+                        "description": "Curso no encontrado o no disponible para el docente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
                 },
-
-                "400": {
-                    "status": "error",
-                    "message": "Error al generar un exportar"
-                }
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
 
         "/api/v1/profesor/{profesorId}/contraseña": {
             "post": {
                 "tags": [
-                    "Contraseña_profesor"
+                    "Docente"
                 ],
                 "summary": "Cambio de contraseña",
                 "description": "Método para actualizar la contraseña de un profesor",
@@ -565,7 +793,8 @@
                         "required": true,
                         "description": "Id del profesor.",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum": 1
                         }
                     }
                 ],
@@ -574,10 +803,8 @@
                     "required": true,
                     "content": {
                         "application/json": {
-                            "example": {
-                                "carnet": "0000001",
-                                "contraseña_actual": "1234",
-                                "contraseña_nueva": "1234"
+                            "schema":{
+                                "$ref":"#/components/schemas/contraseña"
                             }
                         }
                     }
@@ -587,18 +814,29 @@
                         "description": "Contraseña actualizada exitosamente",
                         "content": {
                             "application/json": {
-                                "example": {
-                                    "status": "success",
-                                    "message": "La contraseña se ha actualizado con éxito"
+                                "schema":{
+                                    "$ref":"#/components/schemas/contraRes"
                                 }
                             }
                         }
                     },
                     "401": {
                         "status": "error",
-                        "description": "Error al actualizar la contraseña"
+                        "description": "Error al actualizar la contraseña",
+                        "content": {
+                            "application/json": {
+                                "schema":{
+                                    "$ref":"#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
 
@@ -611,12 +849,13 @@
                 "description": "Método para actualizar el correo electrónico de un docente.",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "profesorId",
                         "in": "path",
                         "required": true,
                         "description": "Id del docente.",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum": 1
                         }
                     }
                 ],
@@ -625,10 +864,8 @@
                     "required": true,
                     "content": {
                         "application/json": {
-                            "example": {
-                                "carnet": "0000001",
-                                "correo_actual": "jonathanreyes@hotmail.com",
-                                "correo_nuevo": "jonareyes@hotmail.com"
+                            "schema": {
+                                "$ref": "#/components/schemas/correo"
                             }
                         }
                     }   
@@ -639,19 +876,29 @@
                         "description": "Correo actualizado exitosamente",
                         "content": {
                             "application/json": {
-                                "example": {
-                                    "status": "success",
-                                    "message": "Correo actualizado con éxito",
-                                    "correo": "jonareyes@hotmail.com"
+                                "schema": {
+                                    "$ref": "#/components/schemas/correoRes"
                                 }
                             }
                         }
                     },
                     "400": {
                         "status": "error",
-                        "message": "Error al actualizar el correo"
+                        "description": "Error al actualizar el correo",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         }
     },
