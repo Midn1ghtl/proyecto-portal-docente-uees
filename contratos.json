@@ -1,4 +1,3 @@
-
 {
     "openapi": "3.0.0",
     "info": {
@@ -6,7 +5,7 @@
         "version": "3.0.0",
         "description": "Esta API proporciona los endpoints necesarios para el portal docente. Permite: inciar sesión, obtener información de cursos, gestionar calificaciones, generar informes, exportar a excel y actualizar información del docente."
     },
-    "server":[
+    "servers":[
         {
             "url": "http://localhost:3000",
             "description": "backend local para desarrollo"
@@ -42,7 +41,7 @@
             "description": "Endpoints relacionados con la generación de reportes e informes."
         }
     ],
-
+    
     "paths": {
         "/api/v1/login": {
             "post": {
@@ -86,8 +85,6 @@
                 }
             }
         },
-
-
         "/api/v1/profesor/{profesorId}/cursos": {
             "get": {
                 "tags": [
@@ -138,7 +135,6 @@
                 ]
             }
         },
-
         "/api/v1/cursos/{cursoId}":{
             "get":{
                 "tags":[
@@ -181,7 +177,6 @@
                 }
             }
         },
-
         "/api/v1/cursos/{cursoId}/estudiantes": {
             "get": {
                 "tags": [
@@ -231,7 +226,6 @@
                 ]
             }
         },
-        
         "/api/v1/cursos/{cursoId}/estudiantes/cargaMasiva":{
             "post":{
                 "tags":[
@@ -293,7 +287,6 @@
                 }
             }
         },
-
         "/api/v1/cursos/{cursoId}/calificaciones":{
             "get": {
                 "tags":[
@@ -301,7 +294,7 @@
                 ],
                 "summary": "Obtener las calificaciones",
                 "description": "Método para obtener las calificaciones de los estudiantes",
-                "parameter": [
+                "parameters": [
                     {
                         "name":"cursoId",
                         "in": "path",
@@ -407,8 +400,6 @@
                 ]
             }
         },
-
-
         "/api/v1/cursos/{cursoId}/calificaciones/{calificacionId}": {
             "patch": {
                 "tags":[
@@ -428,7 +419,7 @@
                         }
                     },
                     {
-                        "name": "calificacionesId",
+                        "name": "calificacionId",
                         "in": "path",
                         "required": true,
                         "description": "Id de la calificación.",
@@ -529,7 +520,6 @@
                 ]
             }
         },
-
         "/api/v1/cursos/{cursoId}/registros/{registro}/publicacion": {
             "post": {
                 "tags": [
@@ -669,7 +659,6 @@
                 ]
             }
         },        
-
         "/api/v1/cursos/{cursoId}/informe": {
             "get": {
                 "tags": [
@@ -720,7 +709,6 @@
                 ]
             }
         },
-
         "/api/v1/cursos/{cursoId}/exportar": {
             "get": {
                 "tags": [
@@ -778,8 +766,7 @@
                 ]
             }
         },
-
-        "/api/v1/profesor/{profesorId}/contraseña": {
+        "/api/v1/profesor/{profesorId}/contra": {
             "post": {
                 "tags": [
                     "Docente"
@@ -804,7 +791,7 @@
                     "content": {
                         "application/json": {
                             "schema":{
-                                "$ref":"#/components/schemas/contraseña"
+                                "$ref":"#/components/schemas/contra"
                             }
                         }
                     }
@@ -839,7 +826,6 @@
                 ]
             }
         },
-
         "/api/v1/profesor/{profesorId}/email":{
             "patch": {
                 "tags": [
@@ -904,191 +890,602 @@
     },
 
     "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
         "schemas": {
-            "login": {
+            "Error": {
                 "type": "object",
-                "properities": {
+                "properties": {
                     "status": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "error"
                     },
                     "message": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "No se pudo completar la solicitud"
+                    }
+                },
+                "required": [
+                    "status",
+                    "message"
+                ]
+            },
+            "loginRequest": {
+                "type": "object",
+                "properties": {
+                    "profesorId": {
+                        "type": "integer",
+                        "example": 1
                     },
-                    "data":{
+                    "contraseña": {
+                        "type": "string",
+                        "format": "password",
+                        "example": "MiClave123"
+                    }
+                },
+                "required": [
+                    "profesorId",
+                    "contraseña"
+                ]
+            },
+            "login": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Operación exitosa"
+                    },
+                    "data": {
                         "type": "object",
-                        "properities": {
+                        "properties": {
                             "profesorId": {
-                                "type": "integer"
+                                "type": "integer",
+                                "example": 1
                             },
                             "nombre": {
-                                "type": "string"
+                                "type": "string",
+                                "example": "Docente ejemplo"
                             },
                             "correo": {
-                                "type": "string"
+                                "type": "string",
+                                "format": "email",
+                                "example": "docente@ejemplo.com"
                             },
                             "carnet": {
-                                "type": "string"
+                                "type": "string",
+                                "example": "D001"
+                            },
+                            "token": {
+                                "type": "string",
+                                "description": "Token JWT para las rutas protegidas",
+                                "example": "eyJ..."
                             }
-                        }
+                        },
+                        "required": [
+                            "profesorId",
+                            "token"
+                        ]
                     }
-                }
-
+                },
+                "required": [
+                    "status",
+                    "message",
+                    "data"
+                ]
             },
             "curso": {
                 "type": "object",
-                "properities": {
+                "properties": {
                     "id_curso": {
-                        "type": "integer"
+                        "type": "integer",
+                        "example": 1
                     },
                     "codigo_asignatura": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "MAT101"
                     },
                     "nombre_asignatura": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "Matemática"
                     },
                     "profesor": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "Docente ejemplo"
                     },
                     "horario": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "Lunes 08:00"
                     },
                     "total_estudiantes": {
-                        "type": "integer"
+                        "type": "integer",
+                        "example": 25
                     }
-                }
+                },
+                "required": [
+                    "id_curso",
+                    "nombre_asignatura"
+                ]
             },
-
+            "cursoRes": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Operación exitosa"
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/curso"
+                        }
+                    }
+                },
+                "required": [
+                    "status",
+                    "message",
+                    "data"
+                ]
+            },
             "listEstudiante": {
                 "type": "object",
                 "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Operación exitosa"
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/estudiante"
+                        }
+                    }
+                },
+                "required": [
+                    "status",
+                    "message",
+                    "data"
+                ]
+            },
+            "estudiante": {
+                "type": "object",
+                "properties": {
                     "matriculaId": {
-                        "type": "integer"
+                        "type": "integer",
+                        "example": 1
                     },
                     "nombre": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "Andrea Miranda"
                     },
                     "cif": {
-                        "type": "string"
-                    },
-                    "nota": {
-                        "type": "number"
+                        "type": "string",
+                        "example": "00123456"
                     }
-                }
+                },
+                "required": [
+                    "matriculaId",
+                    "nombre"
+                ]
             },
-
-            "calificaciones": {
+            "cargaEstudiantes": {
                 "type": "object",
                 "properties": {
                     "status": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "success"
                     },
                     "message": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "Operación exitosa"
                     },
                     "data": {
                         "type": "object",
                         "properties": {
-                            "calificacionesId": {
-                                "type": "integer"
+                            "totalRecibidos": {
+                                "type": "integer",
+                                "example": 25
                             },
-                            "matriculaId": {
-                                "type": "integer"
+                            "incorporados": {
+                                "type": "integer",
+                                "example": 24
                             },
-                            "nota": {
-                                "type": "number"
+                            "omitidos": {
+                                "type": "integer",
+                                "example": 1
+                            }
+                        },
+                        "required": [
+                            "totalRecibidos",
+                            "incorporados",
+                            "omitidos"
+                        ]
+                    }
+                },
+                "required": [
+                    "status",
+                    "message",
+                    "data"
+                ]
+            },
+            "calificacion": {
+                "type": "object",
+                "properties": {
+                    "calificacionId": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "matriculaId": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nota1": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "nota2": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "nota3": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "reposicion": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "notaFinal": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5,
+                        "readOnly": true,
+                        "description": "Calculada por el servidor con nota1 30%, nota2 30%, nota3 40%. Es null si faltan registros; la regla de reposición está pendiente de definir."
+                    },
+                    "estado": {
+                        "type": "string",
+                        "enum": [
+                            "BORRADOR",
+                            "PUBLICADO"
+                        ],
+                        "example": "BORRADOR"
+                    },
+                    "registrosPublicados": {
+                        "type": "object",
+                        "description": "Estado de publicación independiente de cada registro. El campo estado es orientativo; este objeto determina qué notas están publicadas.",
+                        "properties": {
+                            "registro1": {
+                                "type": "boolean",
+                                "example": false
                             },
-                            "estado": {
-                                "type": "string"
+                            "registro2": {
+                                "type": "boolean",
+                                "example": false
+                            },
+                            "registro3": {
+                                "type": "boolean",
+                                "example": false
                             }
                         }
                     }
-                }
-
+                },
+                "required": [
+                    "calificacionId",
+                    "matriculaId",
+                    "estado"
+                ]
             },
-
-            "calificacionesCambio":{
+            "calificacionesGuardar": {
+                "type": "object",
+                "properties": {
+                    "calificaciones": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "$ref": "#/components/schemas/calificacionEntrada"
+                        }
+                    }
+                },
+                "required": [
+                    "calificaciones"
+                ]
+            },
+            "calificacionEntrada": {
+                "type": "object",
+                "properties": {
+                    "matriculaId": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nota1": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "nota2": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "nota3": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "reposicion": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    }
+                },
+                "required": [
+                    "matriculaId"
+                ],
+                "description": "Se pueden enviar notas parciales como borrador. notaFinal no se envía."
+            },
+            "calificacionesRes": {
                 "type": "object",
                 "properties": {
                     "status": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "success"
                     },
                     "message": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "Operación exitosa"
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/calificacion"
+                        }
+                    }
+                },
+                "required": [
+                    "status",
+                    "message",
+                    "data"
+                ]
+            },
+            "notaCambio": {
+                "type": "object",
+                "properties": {
+                    "nota1": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "nota2": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "nota3": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    },
+                    "reposicion": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "nullable": true,
+                        "example": 8.5
+                    }
+                },
+                "minProperties": 1,
+                "description": "Enviar únicamente los campos que se quieren actualizar; notaFinal la calcula el backend."
+            },
+            "calificacionesCambio": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Operación exitosa"
+                    },
+                    "data": {
+                        "$ref":"#/components/schemas/calificacion"
+                    }
+                },
+                "required": [
+                    "status",
+                    "message",
+                    "data"
+                ]
+            },
+            "publicacionRes": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Operación exitosa"
                     },
                     "data": {
                         "type": "object",
                         "properties": {
-                            "calificacionesId": {
-                                "type": "integer"
+                            "cursoId": {
+                                "type": "integer",
+                                "example": 1
                             },
-                            "matriculaId": {
-                                "type": "integer"
+                            "registro": {
+                                "type": "integer",
+                                "enum": [
+                                    1,
+                                    2,
+                                    3
+                                ],
+                                "example": 1
                             },
-                            "nota": {
-                                "type": "number"
-                            },
-                            "estado": {
-                                "type": "string"
+                            "publicado": {
+                                "type": "boolean",
+                                "example": true
                             }
-                        }
+                        },
+                        "required": [
+                            "cursoId",
+                            "registro",
+                            "publicado"
+                        ]
                     }
-                }
-
+                },
+                "required": [
+                    "status",
+                    "message",
+                    "data"
+                ]
             },
-
-            "informe":{
+            "eliminacionRes": {
                 "type": "object",
                 "properties": {
                     "status": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "success"
                     },
                     "message": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "Operación exitosa"
+                    }
+                },
+                "required": [
+                    "status",
+                    "message"
+                ]
+            },
+            "contra": {
+                "type": "object",
+                "properties": {
+                    "contraseñaActual": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "contraseñaNueva": {
+                        "type": "string",
+                        "format": "password",
+                        "minLength": 8
+                    }
+                },
+                "required": [
+                    "contraseñaActual",
+                    "contraseñaNueva"
+                ]
+            },
+            "contraRes": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Operación exitosa"
+                    }
+                },
+                "required": [
+                    "status",
+                    "message"
+                ]
+            },
+            "correo": {
+                "type": "object",
+                "properties": {
+                    "correo": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "nuevo@ejemplo.com"
+                    }
+                },
+                "required": [
+                    "correo"
+                ]
+            },
+            "correoRes": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Operación exitosa"
                     },
                     "data": {
                         "type": "object",
                         "properties": {
-                            "nombre_informe": {
-                                "type": "string"
+                            "profesorId": {
+                                "type": "integer",
+                                "example": 1
                             },
-                            "formato": {
-                                "type": "string"
-                            },
-                            "asignatura": {
-                                "type": "string"
-                            },
-                            "profesor": {
-                                "type": "string"
+                            "correo": {
+                                "type": "string",
+                                "format": "email",
+                                "example": "nuevo@ejemplo.com"
                             }
-                        }
+                        },
+                        "required": [
+                            "profesorId",
+                            "correo"
+                        ]
                     }
-                }
-            },
-            
-            "reporte":{
-                "type": "object",
-                "properties": {
-                    "status": {
-                        "type": "string"
-                    },
-                    "message": {
-                        "type": "string"
-                    },
-                    "data": {
-                        "type": "object",
-                        "properties": {
-                            "nombre_archivo": {
-                                "type": "string"
-                            },
-                            "formato": {
-                                "type": "string"
-                            },
-                            "asignatura": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
+                },
+                "required": [
+                    "status",
+                    "message",
+                    "data"
+                ]
             }
         }
     }
