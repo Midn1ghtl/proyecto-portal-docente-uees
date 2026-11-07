@@ -1,15 +1,17 @@
-document.addEventListener("DOMContentLoaded", () => {
+// Detecta el entorno automáticamente
+const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : "https://tu-backend.vercel.app"; // ⚠️ Reemplaza esto por la URL real de tu backend en Vercel
 
+document.addEventListener("DOMContentLoaded", () => {
     const formulario = document.getElementById("loginForm");
 
     if (formulario) {
         formulario.addEventListener("submit", ingresar);
     }
-
 });
 
 async function ingresar(event) {
-
     event.preventDefault();
 
     // Nombres según la API (loginRequest): profesorId (integer) y dui (string)
@@ -22,8 +24,8 @@ async function ingresar(event) {
     }
 
     try {
-
-        const respuesta = await fetch("http://localhost:3000/api/v1/login", {
+        // Usa la constante API_URL en lugar de localhost hardcodeado
+        const respuesta = await fetch(`${API_URL}/api/v1/login`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -49,9 +51,9 @@ async function ingresar(event) {
         window.location.href = "portal-docente.html";
 
     } catch (error) {
-
         console.error(error);
-
-        alert(error.message || "Error al conectar con el servidor");
+        alert(error.message === "Failed to fetch" || error.message === "Load failed"
+            ? "No se pudo conectar con el servidor backend."
+            : (error.message || "Error al conectar con el servidor"));
     }
 }
