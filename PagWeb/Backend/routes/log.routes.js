@@ -69,7 +69,8 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// GET /api/v1/sesion -> consulta la BD: token válido y docente registrado
+// GET /api/v1/sesion -> consulta la BD: token válido y docente registrado.
+// Devuelve nombre y carné para mostrarlos en el portal.
 router.get("/sesion", async (req, res) => {
   const auth = req.headers.authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -82,7 +83,7 @@ router.get("/sesion", async (req, res) => {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
     const filas = await sql`
-      SELECT p.profesor_id
+      SELECT p.profesor_id, p.nombre, p.carnet
       FROM sesiones_docentes s
       JOIN profesores p ON p.profesor_id = s.profesor_id
       WHERE s.token_hash = ${tokenHash} AND s.expires_at > NOW()
@@ -95,7 +96,15 @@ router.get("/sesion", async (req, res) => {
       });
     }
 
-    res.json({ status: "success", message: "Sesión válida" });
+    res.json({
+      status: "success",
+      message: "Sesión válida",
+      data: {
+        profesorId: Number(filas[0].profesor_id),
+        nombre: filas[0].nombre,
+        carnet: filas[0].carnet
+      }
+    });
 
   } catch (error) {
     console.error("Error en sesion:", error);

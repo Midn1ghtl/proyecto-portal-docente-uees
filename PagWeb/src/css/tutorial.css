@@ -107,7 +107,13 @@ body {
   background: #ffffff1a;
 }
 
-
+h1 {
+  font-size: 30px;
+  font-weight: bold;
+  color: #0b3a7a;
+  margin-bottom: 30px;
+  align-self: center;
+}
 
 
 
@@ -118,6 +124,7 @@ main {
   width: 100%;
   transition: margin-left 0.3s;
   min-height: 100vh;
+  align-items: center;
 }
 
 

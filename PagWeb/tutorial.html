@@ -1,10 +1,14 @@
 <!doctype html>
 <html lang="en" data-bs-theme="light">
     <head>
-        <title>Title</title>
+        <title>Video tutorial</title>
         <!-- Required meta tags -->
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        <!--Oculta la página hasta que el servidor confirme la sesión-->
+        <style id="ocultar">body { visibility: hidden; }</style>
+        <script src="src/js/sesion.js"></script>
 
         <!-- Bootstrap CSS v5.3.8 -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -20,22 +24,22 @@
             </button>
 
             <!--imagen de usuario-->
-            <div class="perfil">
+             <div class="perfil">
                 <img src="src/assets/img/avatar.png" alt="Avatar" class="avatar">
-                <ul>DUI</ul>
-                <ul>Nombre del docente</ul>
+                <ul id="perfilCarnet"></ul>
+                <ul id="perfilNombre"></ul>
             </div>
 
             <!--Inicio de la barra lateral-->
             <nav class="sidenav">
                 <!--botones de navegacion-->
-                
+
                 <a href="portal-docente.html"><i class="fa fa-home"></i><span>Inicio</span></a>
                 <a href="asignatura.html"><i class="fa fa-book"></i><span>Asignaturas</span></a>
                 <a href="#"><i class="fa fa-download"></i><span>Imprimir</span></a>
                 <a href="#"><i class="fa fa-book"></i><span>Exportar a Excel</span></a>
                 <a href="soporte.html"><i class="fa fa-lock"></i><span>Soporte</span></a>
-                <a href="tutorial.html"><i class="fa fa-video"></i><span>Video tutorial</span></a>
+                <a href="vid-tutorial.html"><i class="fa fa-video"></i><span>Video tutorial</span></a>
                 <a href="#"><i class="fa fa-right-from-bracket"></i><span>Cerrar Sesión</span></a>
             </nav>
 
@@ -48,7 +52,7 @@
             <header>
                 <h1>Video tutorial</h1>
             </header>
-
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/UdTL1i2de7k?si=5DGRyb7k5_HCLNGo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
         </main>
 
         <footer>
