@@ -1,7 +1,7 @@
 // Detecta el entorno automáticamente
 const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:3000"
-    : "https://tu-backend.vercel.app"; // ⚠️ Reemplaza esto por la URL real de tu backend en Vercel
+    : "https://portaldocenteuees.vercel.app";
 
 document.addEventListener("DOMContentLoaded", () => {
     const formulario = document.getElementById("loginForm");
