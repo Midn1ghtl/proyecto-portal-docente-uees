@@ -1,3 +1,8 @@
+// Especifica la URL completa de tu backend en Vercel
+const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : "https://portaldocenteuees.vercel.app";
+
 document.addEventListener("DOMContentLoaded", () => {
     const formulario = document.getElementById("loginForm");
 
@@ -18,21 +23,16 @@ async function ingresar(event) {
     }
 
     try {
-        let respuesta;
-        try {
-            respuesta = await fetch(`${window.PORTAL_API_URL}/login`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    profesorId,
-                    dui
-                })
-            });
-        } catch {
-            throw new Error("No se pudo conectar con la API. Comprueba que el portal esté publicado o que el servidor local esté iniciado.");
-        }
+        const respuesta = await fetch(`${API_URL}/api/v1/login`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                profesorId,
+                dui
+            })
+        });
 
         const datos = await respuesta.json().catch(() => ({}));
 
