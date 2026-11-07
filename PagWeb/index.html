@@ -1,40 +1,64 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema Portal Docente</title>
-  <link rel="stylesheet" href="src/css/iniciostyle.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Portal Docente</title>
+
+    <link rel="stylesheet" href="src/css/iniciostyle.css">
 </head>
 <body>
 
-  <!-- Lado izquierdo: panel azul (en el celular se muestra arriba) -->
-  <div class="lado-azul">
-    <img src="src/assets/img/Historia.jpg" alt="Imagen de fondo campus UEES" class="imagen-fondo">
+    <!-- Lado izquierdo -->
+    <div class="lado-azul">
+        <img
+            src="src/assets/img/Historia.jpg"
+            alt="Imagen de fondo campus UEES"
+            class="imagen-fondo">
 
-    <h1>SISTEMA PORTAL DOCENTE</h1>
-  </div>
+        <h1>SISTEMA PORTAL DOCENTE</h1>
+    </div>
 
-  <!-- Lado derecho: logo y formulario -->
-  <div class="lado-form">
-    <img src="src/assets/img/logo_uees.png" alt="Logo de la universidad" class="logo-uees">
-    <p class="logo">EDUCACIÓN DE CALIDAD<br>CON VALORES CRISTIANOS</p>
+    <!-- Lado derecho -->
+    <div class="lado-form">
 
-    <form class="tarjeta" onsubmit="return ingresar('usuario1', 'clave1')">
-      <h2>Digite sus credenciales</h2>
+        <img
+            src="src/assets/img/logo_uees.png"
+            alt="Logo UEES"
+            class="logo-uees">
 
-      <label for="usuario1">Usuario</label>
-      <input type="text" id="usuario1" placeholder="Usuario">
+        <p class="logo">
+            EDUCACIÓN DE CALIDAD<br>
+            CON VALORES CRISTIANOS
+        </p>
 
-      <label for="clave1">Contraseña</label>
-      <input type="password" id="clave1" placeholder="Contraseña">
+        <form class="tarjeta" id="loginForm">
 
-      <label class="recordar"><input type="checkbox"> Recordarme</label>
+            <h2>Digite sus credenciales</h2>
 
-      <button type="submit">Ingresar</button>
-    </form>
-  </div>
+           <form id="loginForm">
+  <label for="usuario1">Usuario</label>
+  <input type="text" id="usuario1" inputmode="numeric" placeholder="Ej. 1" required>
 
-  <script src="src/js/iniciojavascript.js"></script>
+  <label for="clave1">DUI</label>
+  <input type="password" id="clave1" placeholder="DUI" required>
+
+  <button type="submit">Ingresar</button>
+</form>
+
+            <label class="recordar">
+                <input
+                    type="checkbox"
+                    id="recordarme"
+                    name="recordarme">
+                Recordarme
+            </label>
+
+        </form>
+
+    </div>
+
+    <script src="src/js/iniciojavascript.js"></script>
+
 </body>
 </html>

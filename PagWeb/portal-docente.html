@@ -7,6 +7,30 @@
         <title>Portal Docente</title>
 
         <!--AQUI VA LO DE CSS-->
+<style id="ocultar">body { visibility: hidden; }</style>
+<script>
+  (async () => {
+    const LOGIN = "index.html";
+    const token = localStorage.getItem("token");
+
+    const salir = () => {
+      localStorage.clear();
+      window.location.replace(LOGIN);
+    };
+
+    if (!token) return salir();
+
+    try {
+      const r = await fetch("http://127.0.0.1:3000/api/v1/sesion", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      if (!r.ok) return salir();
+      document.getElementById("ocultar").remove(); // sesión válida: muestra el portal
+    } catch (e) {
+      salir();
+    }
+  })();
+</script>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="src/css/portal.css">
