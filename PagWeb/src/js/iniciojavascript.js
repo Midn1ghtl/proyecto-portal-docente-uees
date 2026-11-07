@@ -1,4 +1,4 @@
-// Detecta el entorno automáticamente
+// Especifica la URL completa de tu backend en Vercel
 const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:3000"
     : "https://portaldocenteuees.vercel.app";
@@ -14,7 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
 async function ingresar(event) {
     event.preventDefault();
 
-    // Nombres según la API (loginRequest): profesorId (integer) y dui (string)
     const profesorId = Number(document.getElementById("usuario1").value.trim());
     const dui = document.getElementById("clave1").value.trim();
 
@@ -24,7 +23,6 @@ async function ingresar(event) {
     }
 
     try {
-        // Usa la constante API_URL en lugar de localhost hardcodeado
         const respuesta = await fetch(`${API_URL}/api/v1/login`, {
             method: "POST",
             headers: {
@@ -42,18 +40,17 @@ async function ingresar(event) {
             throw new Error(datos.message || "Error al ingresar");
         }
 
-        // Guardar sesión (respuesta según el esquema "login" de la API)
+        // Guardar sesión según el esquema de OpenAPI
         localStorage.setItem("token", datos.data.token);
         localStorage.setItem("profesorId", datos.data.profesorId);
-        localStorage.setItem("nombre", datos.data.nombre);
+        if (datos.data.nombre) {
+            localStorage.setItem("nombre", datos.data.nombre);
+        }
 
-        // Verificar en la base de datos y abrir el portal docente
         window.location.href = "portal-docente.html";
 
     } catch (error) {
         console.error(error);
-        alert(error.message === "Failed to fetch" || error.message === "Load failed"
-            ? "No se pudo conectar con el servidor backend."
-            : (error.message || "Error al conectar con el servidor"));
+        alert(error.message || "Error al conectar con el servidor");
     }
 }
