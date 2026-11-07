@@ -37,3 +37,12 @@ Commits representativos
 •	Base de datos        - Daniela
 •	Código               - Emily, Andrea y Daniela.
 •	Matriz comparativa   - Emily, Andrea y Daniela.
+
+## Ejecución local y publicación
+
+1. Instala las dependencias desde la raíz del repositorio con `npm install`.
+2. Configura `DATABASE_URL` en el archivo `.env` de la raíz.
+3. Inicia el sitio y la API juntos con `node PagWeb/Backend/server.js`.
+4. Abre `http://localhost:3000`. Para probarlo desde otro dispositivo conectado a la misma red Wi-Fi, abre `http://IP-DE-LA-COMPUTADORA:3000`.
+
+Para usar el portal desde cualquier lugar, publica el repositorio en Vercel con la raíz del proyecto configurada en la raíz del repositorio y agrega `DATABASE_URL` en las variables de entorno de producción. `vercel.json` publica `PagWeb` como sitio y `api/` como API en el mismo dominio. Después de cada cambio, vuelve a desplegar. No abras los archivos HTML directamente con `file://`.

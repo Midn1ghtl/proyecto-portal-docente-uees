@@ -3,8 +3,8 @@
 // Define window.Portal con: Portal.api, Portal.esc y Portal.listo.
 
 (function () {
-    const API = "http://localhost:3000/api/v1";
-    const PAGINA_LOGIN = "login.html"; // <- cambia esto por el nombre real de tu página de login
+    const API = window.PORTAL_API_URL;
+    const PAGINA_LOGIN = "index.html";
 
     function limpiarSesion() {
         ["token", "profesorId", "nombre"].forEach((k) => localStorage.removeItem(k));
@@ -29,20 +29,24 @@
 
     // Llamada a la API con el token; lanza Error con el mensaje del servidor si falla
     async function api(ruta, opciones = {}) {
-        const respuesta = await fetch(API + ruta, {
-            ...opciones,
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + localStorage.getItem("token"),
-                ...(opciones.headers || {})
-            }
-        });
+        let respuesta;
+        try {
+            respuesta = await fetch(API + ruta, {
+                ...opciones,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + localStorage.getItem("token"),
+                    ...(opciones.headers || {})
+                }
+            });
+        } catch {
+            throw new Error("No se pudo conectar con la API. Comprueba que el portal esté publicado o que el servidor local esté iniciado.");
+        }
 
         let datos = {};
         try { datos = await respuesta.json(); } catch (e) { /* respuesta sin JSON */ }
 
         if (respuesta.status === 401) {
-            irAlLogin();
             throw new Error(datos.message || "Sesión inválida o expirada");
         }
         if (!respuesta.ok) {
@@ -94,7 +98,8 @@
             })
             .catch((error) => {
                 console.error("No se pudo verificar la sesión:", error);
-                mostrarPagina();
+                alert(error.message || "No se pudo verificar la sesión con el servidor.");
+                irAlLogin();
                 rechazar(error);
             });
     });
