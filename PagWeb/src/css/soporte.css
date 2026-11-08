@@ -1,3 +1,23 @@
+/* ==========================================================
+   PORTAL DOCENTE – UEES · Estilo base (barra lateral original)
+   ========================================================== */
+:root {
+  --azul-inst: #063B73;
+  --azul: #1677E8;
+  --azul-claro: #DCEEFF;
+  --amarillo: #FFD447;
+  --verde: #D9F5E7;
+  --morado: #E9DDFF;
+  --rosa: #FFE0EC;
+  --celeste: #D9F3F7;
+  --fondo: #F4F7FB;
+  --texto: #17345F;
+  --texto-2: #667085;
+  --blanco: #FFFFFF;
+  --borde: #E3EAF4;
+  --sombra: 0 4px 20px rgba(6, 59, 115, 0.06);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -9,23 +29,23 @@ body {
   margin: 0;
   min-height: 100%;
   font-family: Segoe UI, Arial, sans-serif;
-  background: #f7fbff;
-  color:#080909;
+  background: var(--fondo);
+  color: var(--texto);
 }
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
   display: flex;
   overflow: auto;
 }
 
-
-
+/* ---------- Barra lateral (sin cambios, azul original) ---------- */
 .barra-lateral {
   top: 0;
   left: 0;
   bottom: 0;
   width: 250px;
+  flex-shrink: 0;
   background: #0d144f;
   transition: width 0.3s ease, left 0.3s ease;
   z-index: 1000;
@@ -55,22 +75,21 @@ body {
   padding: 10px;
   font-size: 18px;
   margin: 15px 0 10px 10px;
+  border-radius: 8px;
 }
 
 .toggle:hover {
   background-color: #33335b;
-
 }
 
-.perfil{
+.perfil {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-
 }
 
-.avatar{
+.avatar {
   display: flex;
   width: 100px;
   height: 100px;
@@ -79,7 +98,8 @@ body {
   margin-bottom: 20px;
 }
 
-.perfil ul{
+.perfil ul {
+  list-style: none;
   text-align: center;
   padding: 0;
   margin: 4px;
@@ -97,35 +117,67 @@ body {
   padding: 0 15px;
   height: 50px;
   white-space: nowrap;
-  color:azure;
+  color: azure;
+  text-decoration: none;
   transition: background 0.20s, padding 0.28s;
   align-items: center;
   border-radius: 8px;
 }
 
-.sidenav a:hover{
+.sidenav a:hover {
   background: #ffffff1a;
 }
 
-
+/* ---------- Contenido principal ---------- */
 main {
   flex: 1;
+  min-width: 0;
   width: 100%;
   transition: margin-left 0.3s;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--fondo);
 }
 
+/* Banner de título de cada página */
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  margin: 20px;
+  padding: 24px 28px;
+  color: var(--azul-inst);
+  background-color: var(--azul-claro);
+  border-radius: 16px;
+}
 
+header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--azul-inst);
+}
 
+header p {
+  font-size: 0.95rem;
+  color: var(--texto-2);
+}
 
+/* Botón principal de Bootstrap con la paleta nueva */
+.btn-primary {
+  --bs-btn-bg: var(--azul);
+  --bs-btn-border-color: var(--azul);
+  --bs-btn-hover-bg: var(--azul-inst);
+  --bs-btn-hover-border-color: var(--azul-inst);
+  --bs-btn-active-bg: var(--azul-inst);
+  --bs-btn-active-border-color: var(--azul-inst);
+  --bs-btn-disabled-bg: var(--azul);
+  --bs-btn-disabled-border-color: var(--azul);
+}
 
-
-
-
-
-
-
-
+/* ---------- Responsive (menú, igual que el original) ---------- */
 @media (max-width: 768px) {
     .container {
         grid-template-columns: 1fr;
@@ -161,4 +213,17 @@ main {
         margin-left: 70px;
         width: calc(100% - 70px);
     }
+
+    header {
+        margin: 12px;
+        padding: 18px;
+    }
+}
+
+/* ==========================================================
+   Contenido de la página
+   ========================================================== */
+main > *:not(header) {
+  margin-left: 20px;
+  margin-right: 20px;
 }

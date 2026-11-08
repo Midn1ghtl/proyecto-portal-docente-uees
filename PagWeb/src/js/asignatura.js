@@ -111,7 +111,7 @@
                     }).join("");
  
                     return `<tr data-m="${m}" class="${borrador[m] ? "table-warning" : ""}">
-                        <td><img src="src/assets/img/images.png" class="rounded-circle" width="40" height="40" alt="Foto"></td>
+                        <td><img src="src/assets/img/avatar.png" class="rounded-circle" width="40" height="40" alt="Foto"></td>
                         <td>${esc(e.cif || "—")}</td>
                         <td>${esc(e.nombre)}</td>
                         ${celdas}
