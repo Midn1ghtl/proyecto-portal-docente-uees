@@ -1,4 +1,7 @@
 {
   "version": 2,
-  "outputDirectory": "PagWeb"
+  "outputDirectory": "PagWeb",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" }
+  ]
 }
