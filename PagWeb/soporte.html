@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="en" data-bs-theme="light">
+<html lang="es" data-bs-theme="light">
     <head>
-        <title>Title</title>
+        <title>Soporte y perfil docente</title>
         <!-- Required meta tags -->
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -40,7 +40,7 @@
                 <a href="#"><i class="fa fa-book"></i><span>Exportar a Excel</span></a>
                 <a href="soporte.html"><i class="fa fa-lock"></i><span>Soporte</span></a>
                 <a href="tutorial.html"><i class="fa fa-video"></i><span>Video tutorial</span></a>
-                <a href="index.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('profesorId'); localStorage.removeItem('nombre');">
+                <a href="index.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('profesorId'); localStorage.removeItem('nombre'); sessionStorage.removeItem('token'); sessionStorage.removeItem('profesorId'); sessionStorage.removeItem('nombre');">
     <i class="fa fa-right-from-bracket"></i><span>Cerrar Sesión</span>
 </a>
             </nav>
@@ -74,11 +74,38 @@
                 </div>
             </section>
 
+
+            <section class="container my-4">
+                <h2 class="h4">Datos de acceso</h2>
+                <div id="mensajePerfil" class="alert d-none" role="alert"></div>
+                <div class="d-flex flex-wrap gap-4">
+                    <form id="formCorreo" class="card p-3" style="width:360px;max-width:100%">
+                        <h3 class="h5">Correo electrónico</h3>
+                        <label for="correoNuevo" class="form-label">Correo del docente</label>
+                        <input id="correoNuevo" name="correo" type="email" maxlength="150" autocomplete="email" class="form-control mb-3" required>
+                        <button id="guardarCorreo" class="btn btn-primary" type="submit">Guardar correo</button>
+                    </form>
+                    <form id="formContrasena" class="card p-3" style="width:360px;max-width:100%">
+                        <h3 class="h5">Cambiar contraseña</h3>
+                        <label for="claveActual" class="form-label">Contraseña actual</label>
+                        <input id="claveActual" type="password" autocomplete="current-password" class="form-control mb-2" required>
+                        <label for="claveNueva" class="form-label">Nueva contraseña</label>
+                        <input id="claveNueva" type="password" minlength="8" autocomplete="new-password" class="form-control mb-2" required>
+                        <label for="claveRepetida" class="form-label">Repetir nueva contraseña</label>
+                        <input id="claveRepetida" type="password" minlength="8" autocomplete="new-password" class="form-control mb-3" required>
+                        <button id="guardarContrasena" class="btn btn-primary" type="submit">Actualizar contraseña</button>
+                    </form>
+                </div>
+            </section>
+
         </main>
         <footer>
             <!-- place footer here -->
         </footer>
         <!-- Bootstrap JavaScript Bundle (includes Popper) -->
         <script src="src/js/main.js"></script>
+        <script src="src/js/api-academica.js"></script>
+        <script src="src/js/perfil.js"></script>
+    <script src="src/js/navegacion-academica.js"></script>
     </body>
 </html>

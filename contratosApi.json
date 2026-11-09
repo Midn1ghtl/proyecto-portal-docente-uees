@@ -8,7 +8,11 @@
   "servers": [
     {
       "url": "http://localhost:3000",
-      "description": "backend local para desarrollo"
+      "description": "Desarrollo local"
+    },
+    {
+      "url": "https://portaldocenteuees.vercel.app",
+      "description": "Portal público después de publicar los cambios"
     }
   ],
   "tags": [
@@ -48,7 +52,7 @@
           "Inicio_sesion"
         ],
         "summary": "Iniciar sesión como docente",
-        "description": "Este endpoint permite a los docentes iniciar sesión en el sistema proporcionando sus credenciales.",
+        "description": "Inicio de sesión docente con dui y contrasena. profesorId es un identificador interno devuelto después de autenticar, no el usuario del formulario.",
         "requestBody": {
           "required": true,
           "content": {
@@ -104,7 +108,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/v1/profesor/{profesorId}/cursos": {
@@ -122,7 +127,8 @@
             "description": "Id del docente.",
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -152,6 +158,26 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "400": {
+            "description": "Parámetros o cuerpo inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -174,7 +200,8 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -204,13 +231,34 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "400": {
+            "description": "Parámetros o cuerpo inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
           {
             "bearerAuth": []
           }
-        ]
+        ],
+        "description": " cursoId corresponde a asignaturaid en el esquema universidaduees; las asignaturas son los cursos docentes de esta API."
       }
     },
     "/api/v1/cursos/{cursoId}/estudiantes": {
@@ -219,7 +267,7 @@
           "Estudiantes"
         ],
         "summary": "Obtener la lista de estudiantes de un curso",
-        "description": "Método para obtener la lista de estudiantes matriculados en el curso.",
+        "description": "Método para obtener la lista de estudiantes matriculados en el curso. cursoId corresponde a asignaturaid en el esquema universidaduees; las asignaturas son los cursos docentes de esta API.",
         "parameters": [
           {
             "name": "cursoId",
@@ -228,7 +276,8 @@
             "description": "Id del curso.",
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -258,6 +307,26 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "400": {
+            "description": "Parámetros o cuerpo inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -280,7 +349,8 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             },
             "description": "Identificador del curso"
           }
@@ -317,7 +387,7 @@
             }
           },
           "400": {
-            "description": "Archivo inválido",
+            "description": "Parámetros o cuerpo inválidos",
             "content": {
               "application/json": {
                 "schema": {
@@ -341,13 +411,44 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto de CIF o correo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "El archivo supera 2 MB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
           {
             "bearerAuth": []
           }
-        ]
+        ],
+        "description": "Carga transaccional de estudiantes, no de notas. Campo multipart archivo: CSV UTF-8 (coma o punto y coma) o XLSX de una hoja. Cuatro encabezados: cif,nombre,apellidos,email. Todas las celdas XLSX deben ser texto, incluido CIF. Máximo 1000 filas y 2 MB comprimidos (20 MB descomprimidos). Los CIF existentes no actualizan datos personales; solo se matriculan si pertenecen a la misma carrera. Duplicados se omiten; un error revierte toda la carga. Nuevas matrículas dejan los tres registros en borrador."
       }
     },
     "/api/v1/cursos/{cursoId}/calificaciones": {
@@ -356,7 +457,7 @@
           "Calificaciones"
         ],
         "summary": "Obtener las calificaciones",
-        "description": "Método para obtener las calificaciones de los estudiantes",
+        "description": "Método para obtener las calificaciones de los estudiantes cursoId corresponde a asignaturaid en el esquema universidaduees; las asignaturas son los cursos docentes de esta API.",
         "parameters": [
           {
             "name": "cursoId",
@@ -364,7 +465,8 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -394,6 +496,26 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "400": {
+            "description": "Parámetros o cuerpo inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -407,7 +529,7 @@
           "Calificaciones"
         ],
         "summary": "Guardar las calificaciones",
-        "description": "Método para guardar las calificaciones",
+        "description": "Actualización parcial por matrícula dentro de una sola transacción. Campos omitidos conservan su valor; null elimina la nota. Cada elemento incluye matriculaId y al menos una nota. Máximo 1000 matrículas sin repetir. Rechaza notaFinal, estado y campos desconocidos. Las notas se redondean a dos decimales. Los registros cuyo valor cambia quedan despublicados hasta una nueva publicación; reposicion no afecta la fórmula ni tiene una regla académica impuesta.",
         "parameters": [
           {
             "name": "cursoId",
@@ -415,7 +537,8 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -433,7 +556,7 @@
                     "nota1": 8.5,
                     "nota2": 7.5,
                     "nota3": 9,
-                    "reposición": null
+                    "reposicion": null
                   }
                 ]
               }
@@ -452,7 +575,7 @@
             }
           },
           "400": {
-            "description": "Datos inválidos",
+            "description": "Parámetros o cuerpo inválidos",
             "content": {
               "application/json": {
                 "schema": {
@@ -476,6 +599,16 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -491,7 +624,7 @@
           "Calificaciones"
         ],
         "summary": "Cambiar la nota de un estudiante.",
-        "description": "Método para cambiar o actualizar la nota de evaluación de un estudiante.",
+        "description": "Actualiza únicamente los campos enviados. null borra una nota. Recalcula la final y despublica los registros modificados. La calificación debe pertenecer al curso autorizado.",
         "parameters": [
           {
             "name": "cursoId",
@@ -500,7 +633,8 @@
             "description": "Id del curso.",
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           },
           {
@@ -510,7 +644,8 @@
             "description": "Id de la calificación.",
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -536,7 +671,7 @@
             }
           },
           "400": {
-            "description": "Valor inválido",
+            "description": "Parámetros o cuerpo inválidos",
             "content": {
               "application/json": {
                 "schema": {
@@ -560,6 +695,16 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -580,7 +725,8 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           },
           {
@@ -589,7 +735,8 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -619,13 +766,34 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "400": {
+            "description": "Parámetros o cuerpo inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
           {
             "bearerAuth": []
           }
-        ]
+        ],
+        "description": "Elimina la fila de calificaciones de ese curso y deja sus tres registros en borrador. Conserva estudiante y matrícula. Se permite aunque estuviera publicada."
       }
     },
     "/api/v1/cursos/{cursoId}/registros/{registro}/publicacion": {
@@ -634,7 +802,7 @@
           "Publicación"
         ],
         "summary": "Subir las calificaciones de un registro.",
-        "description": "Método para registrar las calificaciones.",
+        "description": "Publicación por asignatura y registro. Requiere confirmar: true y una nota para cada estudiante matriculado en ese registro; un curso vacío no puede publicarse. Se permite editar después; al cambiar una nota se despublica su registro.",
         "parameters": [
           {
             "name": "cursoId",
@@ -642,7 +810,8 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           },
           {
@@ -655,7 +824,8 @@
                 1,
                 2,
                 3
-              ]
+              ],
+              "maximum": 2147483647
             }
           }
         ],
@@ -682,7 +852,7 @@
         },
         "responses": {
           "200": {
-            "description": "Las calificaciones se han registrado.",
+            "description": "Estado de publicación del registro",
             "content": {
               "application/json": {
                 "schema": {
@@ -716,6 +886,26 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "400": {
+            "description": "Parámetros o cuerpo inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -729,7 +919,7 @@
           "Publicación"
         ],
         "summary": "Quitar publicación de un registro.",
-        "description": "Método para eliminar una publicación.",
+        "description": "Publicación por asignatura y registro. Operación idempotente: devuelve publicado=false incluso si ya estaba en borrador.",
         "parameters": [
           {
             "name": "cursoId",
@@ -738,7 +928,8 @@
             "description": "Id del curso.",
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           },
           {
@@ -752,23 +943,24 @@
                 1,
                 2,
                 3
-              ]
+              ],
+              "maximum": 2147483647
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Publicación eliminada exitosamente",
+            "description": "Estado de publicación del registro",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/eliminacionRes"
+                  "$ref": "#/components/schemas/publicacionRes"
                 }
               }
             }
           },
           "404": {
-            "description": "Error al eliminar la publicación",
+            "description": "Curso no encontrado",
             "content": {
               "application/json": {
                 "schema": {
@@ -782,6 +974,26 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "400": {
+            "description": "Parámetros o cuerpo inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -797,7 +1009,7 @@
           "Reportes"
         ],
         "summary": "Descargar informe pdf del curso",
-        "description": "Método para generar un informe pdf del curso.",
+        "description": "Método para generar un informe pdf del curso. cursoId corresponde a asignaturaid en el esquema universidaduees; las asignaturas son los cursos docentes de esta API.",
         "parameters": [
           {
             "name": "cursoId",
@@ -806,7 +1018,8 @@
             "description": "Id del curso.",
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -823,7 +1036,7 @@
             }
           },
           "400": {
-            "description": "Error al generar un informe",
+            "description": "Parámetros o cuerpo inválidos",
             "content": {
               "application/json": {
                 "schema": {
@@ -847,6 +1060,16 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -862,7 +1085,7 @@
           "Reportes"
         ],
         "summary": "Exportar calificaciones del curso a Excel",
-        "description": "Descarga un archivo .xlsx con el listado de estudiantes y sus calificaciones: nota1, nota2, nota3, reposicion y notaFinal. Solo para docentes autorizados del curso. La exportación no modifica las notas.",
+        "description": "Descarga un archivo .xlsx con el listado de estudiantes y sus calificaciones: nota1, nota2, nota3, reposicion y notaFinal. Solo para docentes autorizados del curso. La exportación no modifica las notas. cursoId corresponde a asignaturaid en el esquema universidaduees; las asignaturas son los cursos docentes de esta API.",
         "parameters": [
           {
             "name": "cursoId",
@@ -870,7 +1093,8 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -910,6 +1134,26 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "400": {
+            "description": "Parámetros o cuerpo inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -925,7 +1169,7 @@
           "Docente"
         ],
         "summary": "Cambio de contraseña",
-        "description": "Método para actualizar la contraseña de un profesor",
+        "description": "Actualiza la contraseña del docente autenticado, verifica la actual y guarda bcrypt en contrasena_hash. Revoca las demás sesiones del modelo sesiones_docentes; conserva el token actual.",
         "parameters": [
           {
             "name": "profesorId",
@@ -981,6 +1225,26 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "400": {
+            "description": "Cuerpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1005,7 +1269,8 @@
             "description": "Id del docente.",
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 2147483647
             }
           }
         ],
@@ -1031,7 +1296,7 @@
             }
           },
           "400": {
-            "description": "Error al actualizar el correo",
+            "description": "Parámetros o cuerpo inválidos",
             "content": {
               "application/json": {
                 "schema": {
@@ -1055,6 +1320,26 @@
           },
           "403": {
             "$ref": "#/components/responses/Prohibido"
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Correo ya registrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1063,6 +1348,34 @@
           }
         ]
       }
+    },
+    "/api/v1/sesion": {
+      "get": {
+        "tags": [
+          "Inicio_sesion"
+        ],
+        "summary": "Consultar la sesión docente",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sesionRes"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/NoAutenticado"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1070,7 +1383,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT"
+        "description": "Token de sesión emitido por el backend, enviado mediante Authorization: Bearer <token>."
       }
     },
     "schemas": {
@@ -1139,7 +1452,8 @@
               "correo": {
                 "type": "string",
                 "format": "email",
-                "example": "docente@ejemplo.com"
+                "example": "docente@ejemplo.com",
+                "nullable": true
               },
               "carnet": {
                 "type": "string",
@@ -1147,8 +1461,8 @@
               },
               "token": {
                 "type": "string",
-                "description": "Token JWT para las rutas protegidas",
-                "example": "eyJ..."
+                "description": "Token de sesión emitido por el backend y aceptado en Authorization: Bearer <token>.",
+                "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
               }
             },
             "required": [
@@ -1168,7 +1482,8 @@
         "properties": {
           "id_curso": {
             "type": "integer",
-            "example": 1
+            "example": 1,
+            "description": "Identificador de la asignatura docente (asignaturaid), no de la carrera."
           },
           "codigo_asignatura": {
             "type": "string",
@@ -1184,7 +1499,8 @@
           },
           "horario": {
             "type": "string",
-            "example": "Lunes 08:00"
+            "example": "Lunes 08:00",
+            "nullable": true
           },
           "total_estudiantes": {
             "type": "integer",
@@ -1321,21 +1637,24 @@
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "nota2": {
             "type": "number",
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "nota3": {
             "type": "number",
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "reposicion": {
             "type": "number",
@@ -1343,7 +1662,7 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Campo adicional. Regla académica pendiente de confirmar."
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "notaFinal": {
             "type": "number",
@@ -1352,7 +1671,7 @@
             "nullable": true,
             "example": 8.5,
             "readOnly": true,
-            "description": "Calculada por el servidor: (nota1*0.30)+(nota2*0.30)+(nota3*0.40). Es null si falta alguna nota. El efecto de la reposición sobre la nota final aún NO está definido."
+            "description": "Final ordinaria calculada desde nota1*0.30+nota2*0.30+nota3*0.40. null si falta algún registro. No usa reposicion. La columna histórica notafinal se conserva separada."
           },
           "estado": {
             "type": "string",
@@ -1361,7 +1680,8 @@
               "PUBLICADO"
             ],
             "example": "BORRADOR",
-            "description": "Resumen de solo lectura derivado de registrosPublicados. La publicación real es por curso y registro (1, 2, 3)."
+            "description": "Resumen de solo lectura derivado de registrosPublicados. La publicación real es por curso y registro (1, 2, 3).",
+            "readOnly": true
           },
           "registrosPublicados": {
             "type": "object",
@@ -1379,7 +1699,8 @@
                 "type": "boolean",
                 "example": false
               }
-            }
+            },
+            "readOnly": true
           }
         },
         "required": [
@@ -1396,7 +1717,8 @@
             "minItems": 1,
             "items": {
               "$ref": "#/components/schemas/calificacionEntrada"
-            }
+            },
+            "maxItems": 1000
           }
         },
         "required": [
@@ -1415,34 +1737,40 @@
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "nota2": {
             "type": "number",
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "nota3": {
             "type": "number",
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "reposicion": {
             "type": "number",
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           }
         },
         "required": [
           "matriculaId"
         ],
-        "description": "Se pueden enviar notas parciales como borrador. notaFinal no se envía."
+        "description": "matriculaId más al menos una nota. Los campos omitidos conservan su valor; null borra una nota.",
+        "minProperties": 2,
+        "additionalProperties": false
       },
       "calificacionesRes": {
         "type": "object",
@@ -1476,32 +1804,37 @@
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "nota2": {
             "type": "number",
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "nota3": {
             "type": "number",
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           },
           "reposicion": {
             "type": "number",
             "minimum": 0,
             "maximum": 10,
             "nullable": true,
-            "example": 8.5
+            "example": 8.5,
+            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
           }
         },
         "minProperties": 1,
-        "description": "Enviar únicamente los campos que se quieren actualizar; notaFinal la calcula el backend."
+        "description": "Enviar únicamente los campos que se quieren actualizar; notaFinal la calcula el backend.",
+        "additionalProperties": false
       },
       "calificacionesCambio": {
         "type": "object",
@@ -1596,13 +1929,15 @@
           "contraseñaNueva": {
             "type": "string",
             "format": "password",
-            "minLength": 8
+            "minLength": 8,
+            "maxLength": 72
           }
         },
         "required": [
           "contraseñaActual",
           "contraseñaNueva"
-        ]
+        ],
+        "additionalProperties": false
       },
       "contraRes": {
         "type": "object",
@@ -1627,12 +1962,14 @@
           "correo": {
             "type": "string",
             "format": "email",
-            "example": "nuevo@ejemplo.com"
+            "example": "nuevo@ejemplo.com",
+            "maxLength": 150
           }
         },
         "required": [
           "correo"
-        ]
+        ],
+        "additionalProperties": false
       },
       "correoRes": {
         "type": "object",
@@ -1669,6 +2006,45 @@
           "message",
           "data"
         ]
+      },
+      "sesionRes": {
+        "type": "object",
+        "required": [
+          "status",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "profesorId": {
+                "type": "integer",
+                "example": 1
+              },
+              "nombre": {
+                "type": "string",
+                "example": "Docente ejemplo"
+              },
+              "correo": {
+                "type": "string",
+                "format": "email",
+                "example": "docente@ejemplo.com",
+                "nullable": true
+              }
+            },
+            "required": [
+              "profesorId",
+              "nombre"
+            ]
+          }
+        }
       }
     },
     "responses": {

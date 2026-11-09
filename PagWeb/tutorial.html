@@ -40,8 +40,8 @@
                 <a href="#"><i class="fa fa-download"></i><span>Imprimir</span></a>
                 <a href="#"><i class="fa fa-book"></i><span>Exportar a Excel</span></a>
                 <a href="soporte.html"><i class="fa fa-lock"></i><span>Soporte</span></a>
-                <a href="vid-tutorial.html"><i class="fa fa-video"></i><span>Video tutorial</span></a>
-                <a href="index.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('profesorId'); localStorage.removeItem('nombre');">
+                <a href="tutorial.html"><i class="fa fa-video"></i><span>Video tutorial</span></a>
+                <a href="index.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('profesorId'); localStorage.removeItem('nombre'); sessionStorage.removeItem('token'); sessionStorage.removeItem('profesorId'); sessionStorage.removeItem('nombre');">
     <i class="fa fa-right-from-bracket"></i><span>Cerrar Sesión</span>
 </a>
             </nav>
@@ -63,5 +63,6 @@
         </footer>
         <!-- Bootstrap JavaScript Bundle (includes Popper) -->
         <script src="src/js/main.js"></script>
+    <script src="src/js/navegacion-academica.js"></script>
     </body>
 </html>

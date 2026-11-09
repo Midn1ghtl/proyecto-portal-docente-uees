@@ -1,289 +1,126 @@
- const CAMPOS = ["nota1", "nota2", "nota3", "reposicion"];
-            const COLUMNAS = 9;
- 
-            // Reglas de calificación (el servidor aplica las mismas)
-            const PESOS = { nota1: 0.30, nota2: 0.30, nota3: 0.40 };
-            const NOTA_APROBACION = 6;
-            const SUMA_PARA_REPOSICION = 10;
- 
-            const redondear = (n) => Math.round(n * 100 + 1e-9) / 100;
- 
-            function calcular(n) {
-                const a = n.nota1 ?? null, b = n.nota2 ?? null, c = n.nota3 ?? null;
-                const notaFinal = (a !== null && b !== null && c !== null)
-                    ? redondear(a * PESOS.nota1 + b * PESOS.nota2 + c * PESOS.nota3)
-                    : null;
-                return {
-                    notaFinal,
-                    aprobado: notaFinal === null ? null : notaFinal >= NOTA_APROBACION,
-                    derechoReposicion: (a !== null && b !== null) ? a + b >= SUMA_PARA_REPOSICION : null
-                };
-            }
- 
-            function htmlResultado(n) {
-                const r = calcular(n);
-                if (r.notaFinal === null) return "—";
-                const etiqueta = r.aprobado
-                    ? '<span class="badge text-bg-success">Aprobado</span>'
-                    : '<span class="badge text-bg-danger">Reprobado</span>';
-                return `${r.notaFinal.toFixed(2)} ${etiqueta}`;
-            }
- 
-            let cursos = [];
-            let cursoActual = null;
-            let estudiantes = [];
-            let servidor = {};   // matriculaId -> calificación guardada en la BD
-            let borrador = {};   // matriculaId -> notas editadas aún sin enviar
- 
-            const $ = (id) => document.getElementById(id);
-            const esc = Portal.esc;
- 
-            const filaMensaje = (texto) => `<tr><td colspan="${COLUMNAS}">${texto}</td></tr>`;
- 
-            const claveBorrador = () =>
-                `borrador_notas_${localStorage.getItem("profesorId")}_${cursoActual.id_curso}`;
- 
-            function guardarBorrador() {
-                try {
-                    if (Object.keys(borrador).length) {
-                        localStorage.setItem(claveBorrador(), JSON.stringify(borrador));
-                    } else {
-                        localStorage.removeItem(claveBorrador());
-                    }
-                } catch (e) { console.error(e); }
-            }
- 
-            function leerBorrador() {
-                try {
-                    return JSON.parse(localStorage.getItem(claveBorrador()) || "{}");
-                } catch (e) {
-                    return {};
-                }
-            }
- 
-            function aviso(texto, tipo) {
-                const caja = $("mensaje");
-                if (!texto) { caja.className = "alert d-none"; return; }
-                caja.className = `alert alert-${tipo}`;
-                caja.textContent = texto;
-            }
- 
-            const invalida = (v) => v !== null && !(v >= 0 && v <= 10);
-            const igual = (a, b) => (a ?? null) === (b ?? null);
- 
-            // Valor a mostrar: lo editado (borrador) o, si no, lo guardado en la BD
-            function valor(matriculaId, campo) {
-                const b = borrador[matriculaId];
-                if (b && campo in b) return b[campo];
-                const s = servidor[matriculaId];
-                return s ? (s[campo] ?? null) : null;
-            }
- 
-            const formatoNota = (n) => (n === null || n === undefined ? "—" : Number(n).toFixed(2));
- 
-            function pintarTabla() {
-                const cuerpo = $("cuerpoNotas");
- 
-                if (!estudiantes.length) {
-                    cuerpo.innerHTML = filaMensaje("Esta asignatura no tiene estudiantes matriculados.");
-                    actualizarEstado();
-                    return;
-                }
- 
-                cuerpo.innerHTML = estudiantes.map((e) => {
-                    const m = e.matriculaId;
-                    const actuales = {
-                        nota1: valor(m, "nota1"),
-                        nota2: valor(m, "nota2"),
-                        nota3: valor(m, "nota3")
-                    };
-                    const sinReposicion = calcular(actuales).derechoReposicion === false;
- 
-                    const celdas = CAMPOS.map((c) => {
-                        const v = valor(m, c);
-                        const bloqueado = c === "reposicion" && sinReposicion;
-                        return `<td>
-                            <input type="number" class="form-control form-control-sm nota${invalida(v) ? " is-invalid" : ""}"
-                                style="width:90px" min="0" max="10" step="0.01"
-                                data-campo="${c}" value="${v === null ? "" : v}"
-                                ${bloqueado ? `disabled title="Sin derecho a reposición: Nota 1 + Nota 2 debe sumar ${SUMA_PARA_REPOSICION} o más"` : ""}>
-                        </td>`;
-                    }).join("");
- 
-                    return `<tr data-m="${m}" class="${borrador[m] ? "table-warning" : ""}">
-                        <td><img src="src/assets/img/avatar.png" class="rounded-circle" width="40" height="40" alt="Foto"></td>
-                        <td>${esc(e.cif || "—")}</td>
-                        <td>${esc(e.nombre)}</td>
-                        ${celdas}
-                        <td class="fw-semibold celda-final">${htmlResultado(actuales)}</td>
-                        <td>—</td>
-                    </tr>`;
-                }).join("");
- 
-                actualizarEstado();
-            }
- 
-            function actualizarEstado() {
-                const n = Object.keys(borrador).length;
-                $("estadoBorrador").textContent = n
-                    ? `${n} estudiante(s) con cambios sin enviar (guardados temporalmente en este navegador).`
-                    : "Sin cambios pendientes.";
-                $("btnEnviar").disabled = n === 0;
-                $("btnDescartar").disabled = n === 0;
-            }
- 
-            // Cada vez que se escribe una nota se guarda el borrador temporal
-            $("cuerpoNotas").addEventListener("input", (ev) => {
-                const input = ev.target.closest(".nota");
-                if (!input) return;
- 
-                const fila = input.closest("tr");
-                const m = Number(fila.dataset.m);
- 
-                const notas = {};
-                fila.querySelectorAll(".nota").forEach((inp) => {
-                    notas[inp.dataset.campo] = inp.value === "" ? null : Number(inp.value);
-                });
- 
-                // Sin derecho a reposición: se bloquea y se limpia ese campo
-                const campoRep = fila.querySelector('[data-campo="reposicion"]');
-                if (calcular(notas).derechoReposicion === false) {
-                    campoRep.value = "";
-                    campoRep.disabled = true;
-                    campoRep.title = `Sin derecho a reposición: Nota 1 + Nota 2 debe sumar ${SUMA_PARA_REPOSICION} o más`;
-                    notas.reposicion = null;
-                } else {
-                    campoRep.disabled = false;
-                    campoRep.removeAttribute("title");
-                }
- 
-                fila.querySelectorAll(".nota").forEach((inp) => {
-                    inp.classList.toggle("is-invalid", invalida(notas[inp.dataset.campo]));
-                });
- 
-                // Nota final y estado en vivo
-                fila.querySelector(".celda-final").innerHTML = htmlResultado(notas);
- 
-                const guardada = servidor[m];
-                const sinCambios = CAMPOS.every((c) => igual(notas[c], guardada ? guardada[c] : null));
- 
-                if (sinCambios) delete borrador[m]; else borrador[m] = notas;
- 
-                fila.classList.toggle("table-warning", !sinCambios);
-                guardarBorrador();
-                actualizarEstado();
-                aviso("");
-            });
- 
-            async function enviar() {
-                const filas = Object.entries(borrador).map(([m, notas]) => ({
-                    matriculaId: Number(m),
-                    nota1: notas.nota1,
-                    nota2: notas.nota2,
-                    nota3: notas.nota3,
-                    reposicion: notas.reposicion
-                }));
- 
-                if (!filas.length) return;
- 
-                if (filas.some((f) => CAMPOS.some((c) => invalida(f[c])))) {
-                    aviso("Hay notas fuera del rango 0 a 10. Corrígelas antes de enviar.", "danger");
-                    return;
-                }
- 
-                $("btnEnviar").disabled = true;
- 
-                try {
-                    const r = await Portal.api(`/cursos/${cursoActual.id_curso}/calificaciones`, {
-                        method: "POST",
-                        body: JSON.stringify({ calificaciones: filas })
-                    });
- 
-                    servidor = {};
-                    r.data.forEach((c) => { servidor[c.matriculaId] = c; });
-                    borrador = {};
-                    guardarBorrador();
-                    pintarTabla();
-                    aviso("Notas guardadas en la base de datos como borrador.", "success");
- 
-                } catch (error) {
-                    console.error(error);
-                    aviso(error.message || "No se pudieron guardar las notas.", "danger");
-                    actualizarEstado();
-                }
-            }
- 
-            function descartar() {
-                if (!confirm("¿Descartar los cambios que no has enviado?")) return;
-                borrador = {};
-                guardarBorrador();
-                pintarTabla();
-                aviso("");
-            }
- 
-            async function cargarCurso(idCurso) {
-                cursoActual = cursos.find((c) => c.id_curso === idCurso);
- 
-                $("detalleAsignatura").textContent =
-                    `${cursoActual.nombre_asignatura} · ${cursoActual.codigo_asignatura || ""} · ${cursoActual.horario || "Sin horario"} · ${cursoActual.total_estudiantes} estudiantes`;
- 
-                $("cuerpoNotas").innerHTML = filaMensaje("Cargando...");
-                aviso("");
- 
-                try {
-                    const [est, cal] = await Promise.all([
-                        Portal.api(`/cursos/${idCurso}/estudiantes`),
-                        Portal.api(`/cursos/${idCurso}/calificaciones`)
-                    ]);
- 
-                    estudiantes = est.data;
-                    servidor = {};
-                    cal.data.forEach((c) => { servidor[c.matriculaId] = c; });
-                    borrador = leerBorrador();
-                    pintarTabla();
- 
-                } catch (error) {
-                    console.error(error);
-                    $("cuerpoNotas").innerHTML = filaMensaje("No se pudo cargar la información.");
-                    aviso(error.message, "danger");
-                }
-            }
- 
-            $("btnEnviar").addEventListener("click", enviar);
-            $("btnDescartar").addEventListener("click", descartar);
- 
-            $("selCurso").addEventListener("change", (e) => {
-                const id = Number(e.target.value);
-                history.replaceState(null, "", `asignatura.html?cursoId=${id}`);
-                cargarCurso(id);
-            });
- 
-            Portal.listo.then(async (docente) => {
-                try {
-                    const r = await Portal.api(`/profesor/${docente.profesorId}/cursos`);
-                    cursos = r.data;
- 
-                    if (!cursos.length) {
-                        $("selCurso").innerHTML = "<option>No tienes asignaturas asignadas</option>";
-                        $("selCurso").disabled = true;
-                        $("detalleAsignatura").textContent = "";
-                        $("cuerpoNotas").innerHTML = filaMensaje("No tienes asignaturas asignadas.");
-                        return;
-                    }
- 
-                    // El horario distingue las secciones de una misma materia
-                    $("selCurso").innerHTML = cursos.map((c) =>
-                        `<option value="${c.id_curso}">${esc(c.nombre_asignatura)}${c.horario ? " - " + esc(c.horario) : ""}</option>`).join("");
- 
-                    const pedido = Number(new URLSearchParams(location.search).get("cursoId"));
-                    const inicial = cursos.find((c) => c.id_curso === pedido) || cursos[0];
- 
-                    $("selCurso").value = inicial.id_curso;
-                    cargarCurso(inicial.id_curso);
- 
-                } catch (error) {
-                    console.error(error);
-                    $("cuerpoNotas").innerHTML = filaMensaje("No se pudieron cargar las asignaturas.");
-                    aviso(error.message, "danger");
-                }
-            });
+(function () {
+  const CAMPOS=['nota1','nota2','nota3','reposicion'];
+  const $=id=>document.getElementById(id),api=window.APIAcademica,esc=Portal.esc;
+  let docente,cursos=[],curso=null,estudiantes=[],servidor={},borrador={},carga=0,ocupado=false;
+  let publicados={registro1:false,registro2:false,registro3:false};
+  function aviso(texto,tipo='info'){$('mensaje').className=texto?'alert alert-'+tipo:'alert d-none';$('mensaje').textContent=texto;}
+  function clave(){return 'borrador_notas_'+docente.profesorId+'_'+curso.id_curso;}
+  function persistir(){try{if(Object.keys(borrador).length)localStorage.setItem(clave(),JSON.stringify(borrador));else localStorage.removeItem(clave());}catch{aviso('No se pudo guardar la copia temporal en este navegador. Guarda las notas en el servidor.','warning');}}
+  function final(n){return [n.nota1,n.nota2,n.nota3].some(x=>x===null||x===undefined)?null:Math.round((n.nota1*.3+n.nota2*.3+n.nota3*.4+Number.EPSILON)*100)/100;}
+  function actuales(m){return Object.fromEntries(CAMPOS.map(c=>[c,borrador[m]&&Object.hasOwn(borrador[m],c)?borrador[m][c]:servidor[m]?.[c]??null]));}
+  function invalidas(n){return CAMPOS.some(c=>n[c]!==null&&(typeof n[c]!=='number'||!Number.isFinite(n[c])||n[c]<0||n[c]>10));}
+  function estado(){
+    const n=Object.keys(borrador).length;
+    $('estadoBorrador').textContent=n?n+' estudiante(s) con cambios pendientes. Se conservan temporalmente en este navegador.':'Sin cambios pendientes.';
+    $('btnEnviar').disabled=ocupado||!curso||!n;$('btnDescartar').disabled=ocupado||!n;
+    $('selCurso').disabled=ocupado||!cursos.length;
+    ['btnPdf','btnExcel','archivoEstudiantes','btnImportar'].forEach(id=>$(id).disabled=ocupado||!curso);
+    [1,2,3].forEach(r=>{
+      $('estadoRegistro'+r).textContent=publicados['registro'+r]?'Publicado':'Borrador';
+      $('publicar'+r).disabled=ocupado||!curso||!!n||publicados['registro'+r];
+      $('despublicar'+r).disabled=ocupado||!curso||!publicados['registro'+r];
+    });
+    document.querySelectorAll('#cuerpoNotas .nota').forEach(i=>i.disabled=ocupado);
+    document.querySelectorAll('[data-guardar]').forEach(b=>b.disabled=ocupado||!borrador[b.dataset.guardar]);
+    document.querySelectorAll('[data-borrar]').forEach(b=>b.disabled=ocupado||!servidor[b.dataset.borrar]);
+  }
+  function pintar(){
+    $('cuerpoNotas').innerHTML=estudiantes.length?estudiantes.map(e=>{
+      const m=e.matriculaId,n=actuales(m),f=final(n);
+      return '<tr data-m="'+m+'" class="'+(borrador[m]?'table-warning':'')+'">'+
+      '<td><img src="src/assets/img/avatar.png" width="40" height="40" alt="Avatar" class="rounded-circle"></td><td>'+esc(e.cif)+'</td><td>'+esc(e.nombre)+'</td>'+
+      CAMPOS.map(c=>'<td><input aria-label="'+c+' de '+esc(e.nombre)+'" type="number" class="form-control form-control-sm nota" style="width:90px" min="0" max="10" step="0.01" data-campo="'+c+'" value="'+(n[c]===null?'':Number(n[c]))+'"></td>').join('')+
+      '<td class="celda-final fw-semibold">'+(f===null?'—':f.toFixed(2))+'</td><td><button class="btn btn-sm btn-outline-primary mb-1" data-guardar="'+m+'">Guardar</button> <button class="btn btn-sm btn-outline-danger" data-borrar="'+m+'">Borrar notas</button></td></tr>';
+    }).join(''):'<tr><td colspan="9">Esta asignatura no tiene estudiantes matriculados.</td></tr>';
+    estado();
+  }
+  function aplicarNotas(rows){servidor={};rows.forEach(r=>servidor[r.matriculaId]=r);publicados=rows[0]?.registrosPublicados||{registro1:false,registro2:false,registro3:false};}
+  async function cargar(id){
+    const ticket=++carga;ocupado=true;estado();aviso('');$('cuerpoNotas').innerHTML='<tr><td colspan="9">Cargando...</td></tr>';
+    try{
+      const [detalle,lista,notas]=await Promise.all([api.json('/cursos/'+id),api.json('/cursos/'+id+'/estudiantes'),api.json('/cursos/'+id+'/calificaciones')]);
+      if(ticket!==carga)return;
+      curso=detalle;estudiantes=lista.data;aplicarNotas(notas.data);
+      try{borrador=JSON.parse(localStorage.getItem(clave())||'{}');if(!borrador||typeof borrador!=='object'||Array.isArray(borrador))borrador={};}catch{borrador={};}
+      const validas=new Set(estudiantes.map(e=>String(e.matriculaId)));for(const m of Object.keys(borrador))if(!validas.has(m))delete borrador[m];
+      $('detalleAsignatura').textContent=curso.nombre_asignatura+' · '+(curso.horario||'Sin horario')+' · '+estudiantes.length+' estudiantes';
+      pintar();
+    }catch(error){aviso(error.message,'danger');$('cuerpoNotas').innerHTML='<tr><td colspan="9">No se pudo cargar la asignatura.</td></tr>';}
+    finally{if(ticket===carga){ocupado=false;estado();}}
+  }
+  async function conOcupado(fn){if(ocupado)return;ocupado=true;estado();try{await fn();}catch(error){aviso(error.message,'danger');}finally{ocupado=false;estado();}}
+  $('cuerpoNotas').addEventListener('input',event=>{
+    const input=event.target.closest('.nota');if(!input||ocupado)return;
+    const tr=input.closest('tr'),m=tr.dataset.m,n={};
+    tr.querySelectorAll('.nota').forEach(i=>{n[i.dataset.campo]=i.value===''?null:Number(i.value);i.classList.toggle('is-invalid',i.value!==''&&(!Number.isFinite(Number(i.value))||Number(i.value)<0||Number(i.value)>10));});
+    const igual=CAMPOS.every(c=>n[c]===(servidor[m]?.[c]??null));if(igual)delete borrador[m];else borrador[m]=n;
+    tr.classList.toggle('table-warning',!igual);const f=final(n);tr.querySelector('.celda-final').textContent=f===null||!Number.isFinite(f)?'—':f.toFixed(2);
+    persistir();estado();
+  });
+  async function guardar(matricula){
+    const pendientes=matricula?[String(matricula)]:Object.keys(borrador);if(!pendientes.length)return;
+    if(pendientes.some(m=>invalidas(borrador[m]))){aviso('Corrige las notas: deben estar entre 0 y 10.','danger');return;}
+    await conOcupado(async()=>{
+      if(matricula&&servidor[matricula]){
+        await api.json('/cursos/'+curso.id_curso+'/calificaciones/'+servidor[matricula].calificacionId,{method:'PATCH',body:borrador[matricula]});
+      }else{
+        await api.json('/cursos/'+curso.id_curso+'/calificaciones',{method:'POST',body:{calificaciones:pendientes.map(m=>({matriculaId:Number(m),...borrador[m]}))}});
+      }
+      pendientes.forEach(m=>delete borrador[m]);persistir();aplicarNotas((await api.json('/cursos/'+curso.id_curso+'/calificaciones')).data);pintar();
+      aviso('Notas guardadas en PostgreSQL. Los registros modificados quedan en borrador.','success');
+    });
+  }
+  $('btnEnviar').addEventListener('click',()=>guardar());
+  $('btnDescartar').addEventListener('click',()=>{if(confirm('¿Descartar los cambios sin enviar de esta asignatura?')){borrador={};persistir();pintar();aviso('Cambios pendientes descartados.');}});
+  $('cuerpoNotas').addEventListener('click',event=>{
+    const guardarBtn=event.target.closest('[data-guardar]');if(guardarBtn){guardar(Number(guardarBtn.dataset.guardar));return;}
+    const borrarBtn=event.target.closest('[data-borrar]');if(!borrarBtn||ocupado)return;
+    const m=Number(borrarBtn.dataset.borrar),guardada=servidor[m];if(!guardada)return;
+    if(!confirm('¿Eliminar las calificaciones guardadas de este estudiante? Su matrícula se conserva.'))return;
+    conOcupado(async()=>{
+      await api.json('/cursos/'+curso.id_curso+'/calificaciones/'+guardada.calificacionId,{method:'DELETE'});
+      delete borrador[m];persistir();aplicarNotas((await api.json('/cursos/'+curso.id_curso+'/calificaciones')).data);pintar();aviso('Calificaciones eliminadas; estudiante y matrícula conservados.','success');
+    });
+  });
+  [1,2,3].forEach(r=>{
+    $('publicar'+r).addEventListener('click',()=>conOcupado(async()=>{
+      await api.json('/cursos/'+curso.id_curso+'/registros/'+r+'/publicacion',{method:'POST',body:{confirmar:true}});
+      publicados['registro'+r]=true;aviso('Registro '+r+' publicado.','success');
+    }));
+    $('despublicar'+r).addEventListener('click',()=>conOcupado(async()=>{
+      await api.json('/cursos/'+curso.id_curso+'/registros/'+r+'/publicacion',{method:'DELETE'});
+      publicados['registro'+r]=false;aviso('Registro '+r+' despublicado.','success');
+    }));
+  });
+  window.descargarInformeCurso=tipo=>{
+    if(!curso||ocupado)return;
+    if(Object.keys(borrador).length&&!confirm('El informe usará las notas guardadas en el servidor. Hay cambios pendientes. ¿Continuar?'))return;
+    return conOcupado(async()=>{await api.descargar(curso.id_curso,tipo);aviso('Descarga preparada.','success');});
+  };
+  $('btnPdf').addEventListener('click',()=>window.descargarInformeCurso('pdf'));
+  $('btnExcel').addEventListener('click',()=>window.descargarInformeCurso('xlsx'));
+  $('btnImportar').addEventListener('click',()=>{
+    const file=$('archivoEstudiantes').files[0];if(!file){aviso('Selecciona un CSV o XLSX de estudiantes.','warning');return;}
+    if(file.size>2*1024*1024){aviso('El archivo supera 2 MB.','danger');return;}
+    conOcupado(async()=>{
+      const form=new FormData();form.append('archivo',file);
+      const result=await api.json('/cursos/'+curso.id_curso+'/estudiantes/cargaMasiva',{method:'POST',body:form});
+      estudiantes=(await api.json('/cursos/'+curso.id_curso+'/estudiantes')).data;
+      aplicarNotas((await api.json('/cursos/'+curso.id_curso+'/calificaciones')).data);pintar();$('archivoEstudiantes').value='';
+      $('detalleAsignatura').textContent=curso.nombre_asignatura+' · '+(curso.horario||'Sin horario')+' · '+estudiantes.length+' estudiantes';
+      aviso('Carga finalizada: '+result.data.incorporados+' incorporados y '+result.data.omitidos+' omitidos.','success');
+    });
+  });
+  $('selCurso').addEventListener('change',event=>{const id=Number(event.target.value);history.replaceState(null,'','asignatura.html?cursoId='+id);cargar(id);});
+  Portal.listo.then(async perfil=>{
+    docente=perfil;
+    try{
+      cursos=(await api.json('/profesor/'+docente.profesorId+'/cursos')).data;
+      $('selCurso').innerHTML=cursos.map(c=>'<option value="'+c.id_curso+'">'+esc(c.nombre_asignatura)+(c.horario?' · '+esc(c.horario):'')+'</option>').join('');
+      if(!cursos.length){$('selCurso').innerHTML='<option>Sin asignaturas asignadas</option>';$('cuerpoNotas').innerHTML='<tr><td colspan="9">No tienes asignaturas asignadas.</td></tr>';estado();return;}
+      const params=new URLSearchParams(location.search),pedido=Number(params.get('cursoId')),inicial=cursos.find(c=>c.id_curso===pedido)||cursos[0];
+      $('selCurso').value=String(inicial.id_curso);await cargar(inicial.id_curso);
+      if(params.has('accion'))aviso('Selecciona la asignatura y utiliza los botones PDF o Excel para descargar sus notas.');
+    }catch(error){aviso(error.message,'danger');estado();}
+  }).catch(()=>{});
+})();

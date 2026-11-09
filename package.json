@@ -3,14 +3,30 @@
     "build": "node scripts/build-public.js",
     "prestart": "npm run build",
     "start": "node PagWeb/Backend/server.js",
-    "test:public": "node --test tests/public-build.test.js"
+    "test:public": "node --test tests/public-build.test.js",
+    "test:academico": "node --test tests/academico.test.js",
+    "test": "node --test tests/academico.test.js tests/contrato-completo.test.js tests/public-build.test.js",
+    "comprobar:bd": "node PagWeb/Backend/probar-bd.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
+    "csv-parse": "^7.0.3",
     "dotenv": "^18.0.9",
+    "exceljs": "^4.4.0",
     "express": "^5.3.0",
+    "multer": "^2.5.0",
+    "pdfkit": "^0.20.2",
     "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "^12.1.0",
+    "@electric-sql/pglite": "^0.5.15"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
   }
 }

@@ -4,8 +4,10 @@
     const API = window.PORTAL_API_URL;
     const PAGINA_LOGIN = "index.html";
 
+    const almacen = () => localStorage.getItem("token") ? localStorage : sessionStorage;
+
     function limpiarSesion() {
-        ["token", "profesorId", "nombre"].forEach((k) => localStorage.removeItem(k));
+        ["token", "profesorId", "nombre"].forEach((k) => { localStorage.removeItem(k); sessionStorage.removeItem(k); });
     }
 
     function irAlLogin() {
@@ -33,7 +35,7 @@
                 ...opciones,
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": "Bearer " + localStorage.getItem("token"),
+                    "Authorization": "Bearer " + almacen().getItem("token"),
                     ...(opciones.headers || {})
                 }
             });
@@ -73,7 +75,7 @@
 
     // Verifica la sesión en el servidor y entrega los datos del docente
     const listo = new Promise((resolver, rechazar) => {
-        if (!localStorage.getItem("token")) {
+        if (!almacen().getItem("token")) {
             irAlLogin();
             return;
         }
@@ -81,8 +83,8 @@
         api("/sesion")
             .then((r) => {
                 const docente = {
-                    profesorId: Number(r.data?.profesorId ?? localStorage.getItem("profesorId")),
-                    nombre: r.data?.nombre ?? localStorage.getItem("nombre"),
+                    profesorId: Number(r.data?.profesorId ?? almacen().getItem("profesorId")),
+                    nombre: r.data?.nombre ?? almacen().getItem("nombre"),
                     carnet: r.data?.carnet ?? ""
                 };
 

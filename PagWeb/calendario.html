@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="en" data-bs-theme="light">
     <head>
+        <style id="ocultar">body { visibility: hidden; }</style>
+        <script src="src/js/api-config.js"></script>
+        <script src="src/js/sesion.js"></script>
         <title>Title</title>
         <!-- Required meta tags -->
         <meta charset="utf-8" />
@@ -22,8 +25,8 @@
             <!--imagen de usuario-->
             <div class="perfil">
                 <img src="src/assets/img/avatar.png" alt="Avatar" class="avatar">
-                <ul>DUI</ul>
-                <ul>Nombre del docente</ul>
+                <ul id="perfilCarnet"></ul>
+                <ul id="perfilNombre"></ul>
             </div>
 
             <!--Inicio de la barra lateral-->
@@ -36,7 +39,7 @@
                 <a href="#"><i class="fa fa-book"></i><span>Exportar a Excel</span></a>
                 <a href="soporte.html"><i class="fa fa-lock"></i><span>Soporte</span></a>
                 <a href="tutorial.html"><i class="fa fa-video"></i><span>Video tutorial</span></a>
-                <<a href="index.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('profesorId'); localStorage.removeItem('nombre');">
+                <a href="index.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('profesorId'); localStorage.removeItem('nombre'); sessionStorage.removeItem('token'); sessionStorage.removeItem('profesorId'); sessionStorage.removeItem('nombre');">
     <i class="fa fa-right-from-bracket"></i><span>Cerrar Sesión</span>
 </a>
             </nav>
@@ -58,5 +61,6 @@
         </footer>
         <!-- Bootstrap JavaScript Bundle (includes Popper) -->
         <script src="src/js/main.js"></script>
+    <script src="src/js/navegacion-academica.js"></script>
     </body>
 </html>

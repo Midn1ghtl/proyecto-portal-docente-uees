@@ -1,46 +1,15 @@
-// Conexion con la base de datos en neon 
-//const { neon } = require('@neondatabase/serverless');
-//require('dotenv').config();
-
-//const sql = neon(process.env.postgresql_url);
-
-// --- CÓDIGO DE PRUEBA DE CONEXIÓN ---
-//async function probarConexion() {
-//  try {
-//    const resultado = await sql`SELECT NOW()`;
-//    console.log('Conexión exitosa a Neon PostgreSQL. Hora del servidor:', resultado[0].now);
-//  } catch (error) {
-//    console.error('Error de conexión:', error);
-//  }
-//}
-
-//probarConexion();
-// ------------------------------------
-
-//module.exports = sql;
-
-//require("dotenv").config();
-
-//const http = require("http");
-//const { neon } = require("@neondatabase/serverless");
-
-//const sql = neon(process.env.DATABASE_URL);
-
-//const requestHandler = async (req, res) => {
-  //const result = await sql`SELECT version()`;
-  //const { version } = result[0];
-  //res.writeHead(200, { "Content-Type": "text/plain" });
-  //res.end(version);
-//};
-
-//http.createServer(requestHandler).listen(3000, () => {
-  //console.log("Server running at http://localhost:3000");
-//});
-
-require("dotenv").config();
-
+const fs = require("node:fs");
+const path = require("node:path");
+const dotenv = require("dotenv");
 const { neon } = require("@neondatabase/serverless");
-
-const sql = neon(process.env.DATABASE_URL);
-
-module.exports = sql;
+// Prioridad: entorno, .env de la raíz y .env antiguo de Backend.
+for (const envPath of [
+  path.resolve(__dirname, "../../..", ".env"),
+  path.resolve(__dirname, "..", ".env")
+]) {
+  if (fs.existsSync(envPath)) dotenv.config({ path: envPath, override: false, quiet: true });
+}
+if (!process.env.DATABASE_URL) {
+  throw new Error("Falta DATABASE_URL. Configúrala en el entorno o en un archivo .env privado.");
+}
+module.exports = neon(process.env.DATABASE_URL);
