@@ -15,6 +15,7 @@ app.use("/api/v1", loginRoutes);
 app.use("/api/v1", cursosRoutes);
 app.use("/api/v1", notasRoutes);
 
-app.use(express.static(path.resolve(__dirname, "..")));
+// public/ se genera con npm run build y contiene solo el frontend.
+app.use(express.static(path.resolve(__dirname, "..", "..", "public")));
 
 module.exports = app;
