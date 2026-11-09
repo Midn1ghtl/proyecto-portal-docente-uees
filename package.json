@@ -5,7 +5,7 @@
     "start": "node PagWeb/Backend/server.js",
     "test:public": "node --test tests/public-build.test.js",
     "test:academico": "node --test tests/academico.test.js",
-    "test": "node --test tests/academico.test.js tests/contrato-completo.test.js tests/public-build.test.js tests/frontend-academico.test.js tests/entrega-neon.test.js",
+    "test": "node --test tests/academico.test.js tests/contrato-completo.test.js tests/public-build.test.js tests/frontend-academico.test.js tests/entrega-neon.test.js tests/pdf-serverless.test.js tests/datos-demo.test.js",
     "comprobar:bd": "node PagWeb/Backend/probar-bd.js"
   },
   "dependencies": {

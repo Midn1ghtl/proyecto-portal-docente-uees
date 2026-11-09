@@ -1,5 +1,21 @@
 const ExcelJS = require("exceljs");
 const PDFDocument = require("pdfkit");
+const fs = require('node:fs');
+const path = require('node:path');
+let fuentes;
+function cargarFuentes() {
+  if (!fuentes) {
+    try {
+      fuentes = {
+        normal: fs.readFileSync(path.join(__dirname, '../assets/fonts/DejaVuSans.ttf')),
+        negrita: fs.readFileSync(path.join(__dirname, '../assets/fonts/DejaVuSans-Bold.ttf'))
+      };
+    } catch {
+      throw Object.assign(new Error('Faltan las fuentes del informe en el servidor'), {code:'PDF_FONT_MISSING'});
+    }
+  }
+  return fuentes;
+}
 async function crearExcel(data) {
   const workbook=new ExcelJS.Workbook();workbook.creator="Portal Docente UEES";
   const sheet=workbook.addWorksheet("Calificaciones");
@@ -21,9 +37,12 @@ async function crearExcel(data) {
 }
 function crearPdf(data) {
   return new Promise((resolve,reject)=>{
-    const doc=new PDFDocument({size:"A4",layout:"landscape",margin:36,info:{Title:"Calificaciones - "+data.curso.nombre_asignatura}});
-    doc.registerFont('UEES',require.resolve('../assets/fonts/DejaVuSans.ttf'));
-    doc.registerFont('UEES-Bold',require.resolve('../assets/fonts/DejaVuSans-Bold.ttf'));
+    // La fuente inicial también es nuestra TTF: evita cargar Helvetica mediante
+    // los imports dinámicos de PDFKit al arrancar una función empaquetada.
+    const fonts=cargarFuentes();
+    const doc=new PDFDocument({font:fonts.normal,size:"A4",layout:"landscape",margin:36,info:{Title:"Calificaciones - "+data.curso.nombre_asignatura}});
+    doc.registerFont('UEES',fonts.normal);
+    doc.registerFont('UEES-Bold',fonts.negrita);
     const parts=[];doc.on('data',b=>parts.push(b));doc.on('end',()=>resolve(Buffer.concat(parts)));doc.on('error',reject);
     const widths=[85,260,70,70,70,90,90];let y,pageNumber=0;
     function pie() {

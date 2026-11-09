@@ -9,7 +9,7 @@ function errorAcademico(error,req,res,next) {
   if(error.code==='23505'){status=409;message='Los datos entran en conflicto con un registro existente';}
   if(error.code==='23503'||error.code==='23514'||error.code==='22001'){status=400;message='Los datos no cumplen las restricciones de la base de datos';}
   if (error.code==='42703'||error.code==='42P01') {status=503;message='Falta preparar el esquema académico en la base de datos; consulta al administrador';}
-  if(status===500){console.error('Error académico:',error.code||error.name);message='Error interno del servidor';}
+  if(status===500){console.error('Error académico:',{codigo:error.code||error.name,ruta:req.route?.path,operacion:error.operacion});message='Error interno del servidor';}
   res.status(status).json({status:"error",message});
 }
 function base({db,autenticar}) {
@@ -33,7 +33,9 @@ function crearCursosRouter(options) {
     ['exportar','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','xlsx',crearExcel]
   ])router.get('/cursos/:cursoId/'+suffix,...protegido,asyncRoute(async(req,res)=>{
     const data=await api.informe(req.profesorId,req.params.cursoId);
-    const bytes=await generar(data);
+    let bytes;
+    try { bytes=await generar(data); }
+    catch(error) {error.operacion='generar_'+extension;throw error;}
     res.set('Content-Type',mime).set('Content-Disposition','attachment; filename="calificaciones_curso_'+data.curso.id_curso+'.'+extension+'"').send(bytes);
   }));
   router.post('/profesor/:profesorId/contra',...protegido,asyncRoute(async(req,res)=>{await api.contrasena(req.profesorId,req.params.profesorId,req.body);ok(res,undefined,'Contraseña actualizada');}));
