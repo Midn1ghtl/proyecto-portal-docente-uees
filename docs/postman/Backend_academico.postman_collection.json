@@ -2,7 +2,7 @@
   "info": {
     "name": "UEES - Portal completo",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Contrato completo: login, sesión, cursos, notas, publicaciones, archivos y perfil. Configura las variables antes de ejecutar; las escrituras modifican la base seleccionada."
+    "description": "Portal exclusivo de docentes: login, sesión, consulta de matrículas existentes, borradores y publicación masiva de notas, PDF, exportación XLSX y perfil. No hay incorporación de estudiantes ni importación de notas. Revisar variables antes de ejecutar escrituras."
   },
   "auth": {
     "type": "bearer",
@@ -239,7 +239,7 @@
       "name": "Escrituras: revisar antes de ejecutar",
       "item": [
         {
-          "name": "Guardar una nota como borrador",
+          "name": "Guardar borradores masivos de la tabla",
           "request": {
             "method": "POST",
             "header": [
@@ -257,7 +257,42 @@
                   "language": "json"
                 }
               }
+            },
+            "description": "Solo matrículas existentes. Campos omitidos se conservan y null permite notas incompletas. Usar los IDs devueltos por GET estudiantes."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
             }
+          ]
+        },
+        {
+          "name": "Guardar y publicar cambios masivos (una transacción)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/cursos/{{cursoId}}/calificaciones/publicacion",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"calificaciones\": [{\"matriculaId\": {{matriculaId}}, \"nota1\": 8.5}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "No exige guardar antes. Publica los registros ordinarios enviados; si falta nota de algún matriculado, revierte todo el envío. Para publicar borradores guardados enviar {\"calificaciones\":[]}."
           },
           "event": [
             {
@@ -343,35 +378,6 @@
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/cursos/{{cursoId}}/registros/1/publicacion"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Carga de estudiantes: selecciona un archivo",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/cursos/{{cursoId}}/estudiantes/cargaMasiva",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "archivo",
-                  "type": "file",
-                  "src": []
-                }
-              ]
-            }
           },
           "event": [
             {

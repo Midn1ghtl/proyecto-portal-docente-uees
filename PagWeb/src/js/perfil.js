@@ -11,7 +11,7 @@
     $('formContrasena').addEventListener('submit',async event=>{
       event.preventDefault();if($('claveNueva').value!==$('claveRepetida').value){aviso('La nueva contraseña y su confirmación no coinciden.','warning');return;}
       const button=$('guardarContrasena');button.disabled=true;
-      try{await APIAcademica.json('/profesor/'+docente.profesorId+'/contra',{method:'POST',body:{'contraseñaActual':$('claveActual').value,'contraseñaNueva':$('claveNueva').value}});$('formContrasena').reset();aviso('Contraseña actualizada. Las demás sesiones se cerraron.','success');}
+      try{await APIAcademica.json('/profesor/'+docente.profesorId+'/contra',{method:'POST',body:{'contraseñaActual':$('claveActual').value,'contraseñaNueva':$('claveNueva').value}});$('formContrasena').reset();aviso('Contraseña actualizada.','success');}
       catch(error){aviso(error.message,'danger');}finally{button.disabled=false;}
     });
   }).catch(()=>{});

@@ -6,8 +6,15 @@ const Parser=require('@apidevtools/swagger-parser');
 test('contrato completo: 16 operaciones, login DUI y contraseña, y sesión',async()=>{
   const spec=JSON.parse(fs.readFileSync(path.join(__dirname,'../contratosApi.json'),'utf8'));
   await Parser.validate(structuredClone(spec));
-  assert.deepEqual(spec.components.schemas.loginRequest.required,['dui','contrasena']);
+  assert.deepEqual(spec.components.schemas.loginRequest.required,['contrasena']);
+  assert.deepEqual(spec.components.schemas.loginRequest.anyOf,[{required:['dui']},{required:['profesorId']}]);
+  assert.equal(spec.components.schemas.login.properties.data.properties.profesorId.type,'string');
   assert.ok(spec.paths['/api/v1/login'].post);assert.ok(spec.paths['/api/v1/sesion'].get);
   assert.ok(spec.paths['/api/v1/profesor/{profesorId}/contra'].post);
+  assert.equal(spec.paths['/api/v1/cursos/{cursoId}/estudiantes/cargaMasiva'],undefined);
+  assert.ok(spec.paths['/api/v1/cursos/{cursoId}/calificaciones/publicacion'].post);
+  const postman=fs.readFileSync(path.join(__dirname,'../docs/postman/Backend_academico.postman_collection.json'),'utf8');
+  assert.ok(!postman.includes('/estudiantes/cargaMasiva'));
+  assert.ok(postman.includes('/calificaciones/publicacion'));
   assert.equal(Object.values(spec.paths).reduce((n,p)=>n+Object.keys(p).filter(m=>['get','post','patch','delete','put'].includes(m)).length,0),16);
 });

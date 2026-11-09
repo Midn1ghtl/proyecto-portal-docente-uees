@@ -72,35 +72,9 @@
                     
 
                     <div class="d-flex flex-wrap gap-2 my-3">
-                        <button id="btnPdf" class="btn btn-outline-primary" type="button">Descargar PDF</button>
+                        <button id="btnPdf" class="btn btn-outline-primary" type="button">Imprimir / descargar PDF</button>
                         <button id="btnExcel" class="btn btn-outline-success" type="button">Exportar a Excel</button>
                     </div>
-                    <div class="border rounded p-3 mb-3">
-                        <label for="archivoEstudiantes" class="form-label">Carga de estudiantes (CSV o XLSX)</label>
-                        <div class="d-flex flex-wrap gap-2">
-                            <input id="archivoEstudiantes" type="file" accept=".csv,.xlsx" class="form-control" style="max-width:420px">
-                            <button id="btnImportar" type="button" class="btn btn-outline-primary">Incorporar estudiantes</button>
-                        </div>
-                        <small>Columnas: cif, nombre, apellidos, email. Máximo 1000 estudiantes y 2 MB. En XLSX, usa texto para conservar los ceros del CIF.</small>
-                    </div>
-                    <div class="d-flex flex-wrap gap-3 mb-3" aria-label="Publicación por registro">
-                        <div class="border rounded p-2">
-                            <strong>Registro 1</strong> · <span id="estadoRegistro1">Borrador</span><br>
-                            <button id="publicar1" type="button" class="btn btn-sm btn-success mt-1">Publicar</button>
-                            <button id="despublicar1" type="button" class="btn btn-sm btn-outline-secondary mt-1">Despublicar</button>
-                        </div>
-                        <div class="border rounded p-2">
-                            <strong>Registro 2</strong> · <span id="estadoRegistro2">Borrador</span><br>
-                            <button id="publicar2" type="button" class="btn btn-sm btn-success mt-1">Publicar</button>
-                            <button id="despublicar2" type="button" class="btn btn-sm btn-outline-secondary mt-1">Despublicar</button>
-                        </div>
-                        <div class="border rounded p-2">
-                            <strong>Registro 3</strong> · <span id="estadoRegistro3">Borrador</span><br>
-                            <button id="publicar3" type="button" class="btn btn-sm btn-success mt-1">Publicar</button>
-                            <button id="despublicar3" type="button" class="btn btn-sm btn-outline-secondary mt-1">Despublicar</button>
-                        </div>
-                    </div>
-
                     <!--Tabla de estudiantes-->
                     <div class="table-responsive-lg">
                         <table class="table table-bordered">
@@ -128,6 +102,7 @@
                         <button id="btnEnviar" class="btn btn-primary" disabled>
                             <i class="fa fa-cloud-arrow-up"></i> Guardar cambios como borrador
                         </button>
+                        <button id="btnPublicar" class="btn btn-success" type="button" disabled>Publicar cambios</button>
                         <button id="btnDescartar" class="btn btn-outline-secondary" disabled>
                             Descartar cambios
                         </button>
@@ -135,7 +110,7 @@
 
                     <p class="text-muted mt-3 mb-0" style="font-size:0.9rem">
                         Las notas que escribes se guardan temporalmente en este navegador.
-                        Se registran en la base de datos al presionar "Enviar". La nota final la calcula el servidor. La regla de reposición está pendiente de confirmar.
+                        "Guardar cambios como borrador" conserva las notas, incluso incompletas, en PostgreSQL sin publicarlas. "Publicar cambios" guarda y publica en una sola operación. La final usa 30 %, 30 % y 40 %; la reposición es un dato adicional.
                     </p>
                 </article>
 

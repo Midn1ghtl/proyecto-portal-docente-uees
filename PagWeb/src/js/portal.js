@@ -20,6 +20,6 @@
 
                 } catch (error) {
                     console.error(error);
-                    lista.innerHTML = "<p>No se pudieron cargar las asignaturas.</p>";
+                    lista.innerHTML = "<p>" + Portal.esc(error.message || "No se pudieron cargar las asignaturas.") + "</p>";
                 }
             });

@@ -7,39 +7,38 @@ const express=require('express');
 const ExcelJS=require('exceljs');
 const {PGlite}=require('@electric-sql/pglite');
 const {crearCursosRouter,crearNotasRouter}=require('../PagWeb/Backend/modules/academico.routes');
+const {crearToken}=require('../PagWeb/Backend/Verificacion/TokenSesion');
+const {crearVerificador}=require('../PagWeb/Backend/Verificacion/VerificarToken');
+process.env.DATABASE_URL ||= 'postgresql://test:test@localhost/test';
+const {crearLoginRouter}=require('../PagWeb/Backend/routes/log.routes');
 let pg,db,server,base,matriculas,originales;
 const root=path.resolve(__dirname,'..');
-const aprobadas=[];
+let sinMigracion;
 before(async()=>{
-  pg=new PGlite();await pg.exec(fs.readFileSync(path.join(root,'docs/BaseDatos-New.sql'),'utf8'));
+  pg=new PGlite();await pg.exec(fs.readFileSync(path.join(root,'docs/BaseDatos-New.sql'),'utf8').replace(/ProfesorId integer/g,'ProfesorId varchar(9)').replace(/DocenteId integer/g,'DocenteId varchar(9)'));
+  await pg.exec('ALTER TABLE universidaduees.profesores ADD COLUMN contrahash text');
   originales=(await pg.query('SELECT calificacionid,notafinal FROM universidaduees.calificaciones ORDER BY calificacionid')).rows;
-  await pg.exec(fs.readFileSync(path.join(root,'docs/migraciones/001_autenticacion_dui.sql'),'utf8'));
-  const migration=fs.readFileSync(path.join(root,'docs/migraciones/002_backend_academico.sql'),'utf8');
+
+  db={query:(q,v)=>pg.query(q,v),transaction:(work)=>pg.transaction(tx=>work(tx))};
+  const api=require('../PagWeb/Backend/services/academico').crearAcademico(db);
+  sinMigracion={detalle:await api.detalle('1',1),estudiantes:await api.estudiantes('1',1),notas:await api.calificaciones('1',1)};
+  const migration=fs.readFileSync(path.join(root,'docs/migraciones/003_borradores_publicacion.sql'),'utf8');
   await pg.exec(migration);await pg.exec(migration);
   db={query:(q,v)=>pg.query(q,v),transaction:(work)=>pg.transaction(tx=>work(tx))};
-  // Esta autenticación simulada existe únicamente en las pruebas; no se publica.
-  const autenticar=(req,res,next)=>{
-    if(!req.headers['x-test-docente'])return res.status(401).json({status:'error',message:'No autorizado'});
-    req.profesorId=Number(req.headers['x-test-docente']);next();
-  };
+  const autenticar=crearVerificador(db);
   const app=express();app.use(express.json({limit:'1mb'}));
+  const sql=async(parts,...values)=>{const q=parts.reduce((out,part,i)=>out+(i?'$'+i:'')+part,'');return (await pg.query(q,values)).rows;};
+  app.use('/api/v1',crearLoginRouter(sql));
   app.use('/api/v1',crearCursosRouter({db,autenticar}));app.use('/api/v1',crearNotasRouter({db,autenticar}));
   server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
   base='http://127.0.0.1:'+server.address().port+'/api/v1';
-  matriculas=(await pg.query('SELECT matricula_id,estudianteid FROM universidaduees.matricula WHERE asignaturaid=1 ORDER BY estudianteid')).rows;
+  matriculas=(await pg.query('SELECT estudianteid AS matricula_id,estudianteid FROM universidaduees.matricula WHERE asignaturaid=1 ORDER BY estudianteid')).rows;
 });
 after(async()=>{if(server)await new Promise(r=>server.close(r));if(pg)await pg.close();});
 async function req(route,{method='GET',body,profesor=1,headers={}}={}){
-  return fetch(base+route,{method,headers:{...(profesor?{'x-test-docente':String(profesor)}:{}),...(body!==undefined?{'Content-Type':'application/json'}:{}),...headers},body:body===undefined?undefined:JSON.stringify(body)});
+  return fetch(base+route,{method,headers:{...(profesor?{Authorization:'Bearer '+crearToken(profesor)}:{}),...(body!==undefined?{'Content-Type':'application/json'}:{}),...headers},body:body===undefined?undefined:JSON.stringify(body)});
 }
 const notas=()=>req('/cursos/1/calificaciones').then(r=>r.json()).then(r=>r.data);
-const nuevo=(cif,email)=>({cif,nombre:'Ana',apellidos:'Prueba',email});
-async function upload(content,name='estudiantes.csv',profesor=1,route='/cursos/1/estudiantes/cargaMasiva'){
-  const form=new FormData();form.append('archivo',new Blob([content]),name);
-  return fetch(base+route,{method:'POST',headers:profesor?{'x-test-docente':String(profesor)}:{},body:form});
-}
-function csv(rows){return 'cif,nombre,apellidos,email\n'+rows.map(r=>[r.cif,r.nombre,r.apellidos,r.email].join(',')).join('\n');}
-
 test('migración repetible conserva los 150 valores históricos y sus claves',async()=>{
   assert.deepEqual((await pg.query('SELECT calificacionid,notafinal FROM universidaduees.calificaciones ORDER BY calificacionid')).rows,originales);
   assert.equal((await pg.query('SELECT count(*)::int AS n FROM universidaduees.matricula')).rows[0].n,150);
@@ -62,7 +61,7 @@ test('cursos, detalle y estudiantes usan asignatura y matrícula reales',async()
 test('las 14 operaciones de cursos y perfil exigen sesión y rechazan al docente ajeno',async()=>{
   const operations=[
     ['/profesor/1/cursos','GET'],['/cursos/1','GET'],['/cursos/1/estudiantes','GET'],
-    ['/cursos/1/estudiantes/cargaMasiva','POST',{}],['/cursos/1/calificaciones','GET'],
+    ['/cursos/1/calificaciones/publicacion','POST',{calificaciones:[]}],['/cursos/1/calificaciones','GET'],
     ['/cursos/1/calificaciones','POST',{calificaciones:[{matriculaId:matriculas[0].matricula_id,nota1:8}]}],
     ['/cursos/1/calificaciones/1001','PATCH',{nota1:8}],['/cursos/1/calificaciones/1001','DELETE'],
     ['/cursos/1/registros/1/publicacion','POST',{confirmar:true}],['/cursos/1/registros/1/publicacion','DELETE'],
@@ -121,33 +120,45 @@ test('eliminar notas conserva matrícula y permite guardarlas de nuevo',async()=
   assert.equal(response.status,200);const row=(await response.json()).data.find(r=>r.matriculaId===last.matriculaId);
   assert.ok(row.calificacionId>3050);assert.equal(row.notaFinal,0);
 });
-test('CSV incorpora estudiantes y omite duplicados sin modificar datos existentes',async()=>{
-  const student=nuevo('00001234','ana.importada@example.test');
-  const r=await upload(csv([student,student,{...student,cif:'CIF-UEES-0001',email:'otro@example.test'}]));
-  assert.equal(r.status,200,await r.clone().text());assert.deepEqual((await r.json()).data,{totalRecibidos:3,incorporados:1,omitidos:2});
-  const existing=(await pg.query("SELECT email FROM universidaduees.estudiantes WHERE cif='CIF-UEES-0001'")).rows[0];assert.equal(existing.email,'estudiante0001@example.test');
-  const repeat=await upload(csv([student]));assert.equal((await repeat.json()).data.incorporados,0);
-  const students=(await (await req('/cursos/1/estudiantes')).json()).data;assert.ok(students.some(s=>s.cif==='00001234'));
+test('docentes no pueden crear ni importar estudiantes o matrículas',async()=>{
+  const antes=(await pg.query('SELECT (SELECT count(*) FROM universidaduees.estudiantes) AS estudiantes,(SELECT count(*) FROM universidaduees.matricula) AS matriculas')).rows;
+  for(const route of ['/cursos/1/estudiantes/cargaMasiva','/cursos/1/estudiantes','/estudiantes','/matricula']) {
+    const response=await req(route,{method:'POST',body:{cif:'NO-CREAR',nombre:'Prueba'}});assert.equal(response.status,404);
+  }
+  assert.deepEqual((await pg.query('SELECT (SELECT count(*) FROM universidaduees.estudiantes) AS estudiantes,(SELECT count(*) FROM universidaduees.matricula) AS matriculas')).rows,antes);
 });
-test('CSV inválido o conflicto revierte toda la carga',async()=>{
-  const count=()=>pg.query('SELECT count(*)::int AS n FROM universidaduees.estudiantes').then(r=>r.rows[0].n);const antes=await count();
-  let response=await upload(csv([nuevo('NUEVO-1','valido@example.test'),nuevo('NUEVO-2','invalido')]));assert.equal(response.status,400);assert.equal(await count(),antes);
-  response=await upload(csv([nuevo('NUEVO-1','correo.conflicto@example.test'),nuevo('NUEVO-2','correo.conflicto@example.test')]));assert.equal(response.status,409);assert.equal(await count(),antes);
-  assert.equal((await upload('cif,nombre\n1,Ana')).status,400);
-  assert.equal((await upload(csv([nuevo('NO-AUT','noaut@example.test')]),'datos.csv',2)).status,403);
+
+test('esquema original permite leer matrículas y notas sin columnas agregadas',()=>{
+  assert.equal(sinMigracion.detalle.edicionDisponible,false);
+  assert.equal(sinMigracion.estudiantes.length,50);assert.equal(sinMigracion.notas.length,50);
+  assert.ok(sinMigracion.estudiantes.some(e=>e.matriculaId===1));
+  assert.equal(sinMigracion.notas[0].notaFinal,Math.round((sinMigracion.notas[0].nota1*.3+sinMigracion.notas[0].nota2*.3+sinMigracion.notas[0].nota3*.4)*100)/100);
 });
-test('XLSX permite texto y rechaza CIF numéricos y fórmulas',async()=>{
-  async function libro(cif){const b=new ExcelJS.Workbook(),s=b.addWorksheet('Estudiantes');s.addRow(['cif','nombre','apellidos','email']);s.addRow([cif,'Luis','Prueba','luis.xlsx@example.test']);return b.xlsx.writeBuffer();}
-  let response=await upload(await libro('00005678'),'datos.xlsx');assert.equal(response.status,200,await response.clone().text());
-  response=await upload(await libro(5678),'datos.xlsx');assert.equal(response.status,400);
-  response=await upload(await libro({formula:'1+1'}),'datos.xlsx');assert.equal(response.status,400);
-  assert.equal((await upload('no es xlsx','datos.xlsx')).status,400);
+
+test('botón único guarda y publica varios alumnos; fallo revierte el lote completo',async()=>{
+  await pg.query("INSERT INTO universidaduees.asignaturas(asignaturaid,nombre,cursoid,profesorid) VALUES(6,'Publicación masiva',1,'1')");
+  await pg.query('INSERT INTO universidaduees.matricula(asignaturaid,estudianteid,cursoid) VALUES(6,1,1),(6,2,1)');
+  const ruta='/cursos/6/calificaciones';
+  let r=await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[{matriculaId:1,nota1:8},{matriculaId:2,nota1:9}]}});
+  assert.equal(r.status,200);let data=(await r.json()).data;assert.deepEqual(data.registros,[1]);assert.ok(data.calificaciones.every(n=>n.notaFinal===null&&n.registrosPublicados.registro1));
+  r=await req(ruta,{method:'POST',body:{calificaciones:[{matriculaId:1,nota1:7,nota2:8}]}});assert.equal(r.status,200);
+  let guardadas=(await (await req(ruta)).json()).data;assert.equal(guardadas[0].nota1,7);assert.equal(guardadas[0].nota2,8);assert.equal(guardadas[0].registrosPublicados.registro1,false);
+  // Publicar R1 y R2 en el mismo envío: R2 está incompleto; R1 tampoco debe publicarse ni cambiar notas.
+  r=await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[{matriculaId:1,nota1:10,nota2:9},{matriculaId:2,nota1:6}]}});
+  assert.equal(r.status,422);assert.match((await r.json()).message,/Registro 2/);assert.deepEqual((await (await req(ruta)).json()).data,guardadas);
+  // Completar R2 guardado en borrador; publicar después sin ediciones pendientes en el navegador.
+  r=await req(ruta,{method:'POST',body:{calificaciones:[{matriculaId:2,nota2:7}]}});assert.equal(r.status,200);
+  r=await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[]}});assert.equal(r.status,200);data=(await r.json()).data;assert.deepEqual(data.registros,[1,2]);
+  assert.ok(data.calificaciones.every(n=>n.registrosPublicados.registro1&&n.registrosPublicados.registro2&&!n.registrosPublicados.registro3));
+  assert.equal((await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[{matriculaId:999,nota1:9}]}})).status,400);
+  assert.equal((await req(ruta+'/publicacion',{method:'POST',profesor:2,body:{calificaciones:[]}})).status,403);
+  const antesReposicion=(await (await req(ruta)).json()).data;
+  r=await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[{matriculaId:1,reposicion:10}]}});assert.equal(r.status,422);
+  assert.deepEqual((await (await req(ruta)).json()).data,antesReposicion);
+  r=await req(ruta,{method:'POST',body:{calificaciones:[{matriculaId:1,reposicion:10}]}});assert.equal(r.status,200);
+  assert.equal((await r.json()).data[0].reposicion,10);
 });
-test('carga rechaza archivos mayores de 2 MB y tipos no soportados',async()=>{
-  assert.equal((await upload(Buffer.alloc(2*1024*1024+1,65))).status,413);
-  assert.equal((await upload('texto','datos.exe')).status,400);
-  assert.equal((await req('/cursos/1/estudiantes/cargaMasiva',{method:'POST',body:{archivo:'texto'}})).status,400);
-});
+
 test('un curso vacío devuelve lista vacía y no puede publicarse',async()=>{
   await pg.query("INSERT INTO universidaduees.asignaturas(asignaturaid,nombre,cursoid,profesorid) VALUES(4,'Sin alumnos',1,1)");
   const r=await req('/cursos/4/estudiantes');assert.deepEqual((await r.json()).data,[]);
@@ -159,8 +170,8 @@ test('PDF es descargable y Excel contiene CIF texto y notas numéricas',async()=
   fs.writeFileSync(path.join(os.tmpdir(),'uees-test-academico.pdf'),pdf);
   response=await req('/cursos/1/exportar');assert.equal(response.status,200);assert.match(response.headers.get('content-disposition'),/\.xlsx/);
   const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(Buffer.from(await response.arrayBuffer()));const sheet=workbook.getWorksheet('Calificaciones');
-  assert.equal(sheet.rowCount,53);let encontrado=false;
-  sheet.eachRow((row,i)=>{if(i>1&&row.getCell(1).value==='00001234')encontrado=true;});assert.ok(encontrado);
+  assert.equal(sheet.rowCount,51);let encontrado=false;
+  sheet.eachRow((row,i)=>{if(i>1&&row.getCell(1).value==='CIF-UEES-0001')encontrado=true;});assert.ok(encontrado);
   const primera=(await notas()).find(r=>r.matriculaId===matriculas[0].matricula_id);
   const rows=[];sheet.eachRow((row,i)=>{if(i>1)rows.push(row.values);});
   const nota=rows.find(r=>r[1]==='CIF-UEES-0001');assert.equal(typeof nota[3],'number');assert.equal(nota[7],primera.notaFinal);
@@ -174,17 +185,39 @@ test('correo solo se modifica para el docente autenticado y valida conflictos',a
   assert.equal((await req('/profesor/1/email',{method:'PATCH',body:{correo:'carlos.hernandez@example.test'}})).status,409);
 });
 
-test('contraseña verifica la actual, almacena bcrypt y revoca otras sesiones',async()=>{
-  const bcrypt=require('bcryptjs'),crypto=require('node:crypto');
-  await pg.query('UPDATE universidaduees.profesores SET contrasena_hash=$1 WHERE profesorid=1',[await bcrypt.hash('clave anterior prueba',4)]);
-  const hash=t=>crypto.createHash('sha256').update(t).digest('hex');
-  const token='a'.repeat(64);
-  await pg.query("INSERT INTO universidaduees.sesiones_docentes(token_hash,profesor_id,expires_at) VALUES($1,1,now()+interval '1 hour'),($2,1,now()+interval '1 hour')",[hash(token),hash('b'.repeat(64))]);
+test('contraseña usa contrahash y permite autenticar con la nueva clave',async()=>{
+  const bcrypt=require('bcryptjs');
+  await pg.query('UPDATE universidaduees.profesores SET contrahash=$1 WHERE profesorid=$2',[await bcrypt.hash('clave anterior prueba',4),'1']);
   const body={'contraseñaActual':'clave anterior prueba','contraseñaNueva':'nueva clave prueba'};
   assert.equal((await req('/profesor/1/contra',{method:'POST',body:{...body,'contraseñaActual':'incorrecta'}})).status,401);
   assert.equal((await req('/profesor/2/contra',{method:'POST',body})).status,403);
   assert.equal((await req('/profesor/1/contra',{method:'POST',body:{...body,'contraseñaNueva':'corta'}})).status,400);
-  const result=await req('/profesor/1/contra',{method:'POST',body,headers:{Authorization:'Bearer '+token}});assert.equal(result.status,200);
-  const saved=(await pg.query('SELECT contrasena_hash FROM universidaduees.profesores WHERE profesorid=1')).rows[0];assert.ok(await bcrypt.compare(body['contraseñaNueva'],saved.contrasena_hash));
-  const sessions=(await pg.query('SELECT token_hash FROM universidaduees.sesiones_docentes WHERE profesor_id=1')).rows;assert.deepEqual(sessions,[{token_hash:hash(token)}]);
+  assert.equal((await req('/profesor/1/contra',{method:'POST',body})).status,200);
+  const login=await req('/login',{method:'POST',profesor:null,body:{profesorId:'1',contrasena:body['contraseñaNueva']}});
+  assert.equal(login.status,200);
+  const token=(await login.json()).data.token;
+  assert.equal((await req('/sesion',{headers:{Authorization:'Bearer '+token}})).status,200);
+  assert.equal((await req('/profesor/1/cursos',{headers:{Authorization:'Bearer '+token}})).status,200);
+});
+
+test('login real conserva ceros, rechaza token alterado y distingue lista vacía',async()=>{
+  const bcrypt=require('bcryptjs');
+  await pg.query('INSERT INTO universidaduees.profesores(profesorid,nombre,apellidos,contrahash) VALUES($1,$2,$3,$4)', ['001234567','Docente','Prueba',await bcrypt.hash('clave de prueba',4)]);
+  let r=await req('/login',{method:'POST',profesor:null,body:{dui:'00123456-7',contrasena:'clave de prueba'}});
+  assert.equal(r.status,200);const sesion=(await r.json()).data;assert.equal(sesion.profesorId,'001234567');
+  const headers={Authorization:'Bearer '+sesion.token};
+  assert.equal((await req('/sesion',{headers})).status,200);
+  r=await req('/profesor/001234567/cursos',{headers});assert.equal(r.status,200);assert.deepEqual((await r.json()).data,[]);
+  await pg.query("INSERT INTO universidaduees.asignaturas(asignaturaid,nombre,cursoid,profesorid) VALUES(5,'Asignada',1,'001234567')");
+  r=await req('/profesor/001234567/cursos',{headers});assert.equal((await r.json()).data[0].nombre_asignatura,'Asignada');
+  assert.equal((await req('/cursos/5',{headers})).status,200);
+  assert.equal((await req('/profesor/1234567/cursos',{headers})).status,403);
+  assert.equal((await req('/profesor/1/cursos',{headers:{Authorization:'Bearer '+sesion.token+'x'}})).status,401);
+  assert.equal((await req('/profesor/1/cursos',{headers:{Authorization:'Bearer '+sesion.token+'.extra'}})).status,401);
+  assert.equal((await req('/profesor/1/cursos',{headers:{Authorization:'Bearer '+crearToken('NOEXISTE')}})).status,401);
+  await pg.exec('ALTER TABLE universidaduees.asignaturas DROP COLUMN IF EXISTS codigo');
+  assert.equal((await req('/profesor/001234567/cursos',{headers})).status,200);
+  await pg.exec('DROP TABLE universidaduees.publicaciones_registros');
+  r=await req('/cursos/1/calificaciones');assert.equal(r.status,200);
+  r=await req('/cursos/1/calificaciones',{method:'POST',body:{calificaciones:[{matriculaId:1,nota1:9}]}});assert.equal(r.status,503);assert.match((await r.json()).message,/preparación/);
 });

@@ -11,7 +11,7 @@
     catch {throw new Error('No se pudo conectar con el servidor. Comprueba la URL y que el backend esté iniciado.');}
     if(!response.ok){
       const error=await response.json().catch(()=>({}));
-      throw new Error(error.message||'La solicitud falló ('+response.status+').');
+      throw new Error((error.message||'La solicitud falló')+' (HTTP '+response.status+').');
     }
     if(binario)return response.blob();
     const datos=await response.json().catch(()=>null);

@@ -52,7 +52,7 @@
           "Inicio_sesion"
         ],
         "summary": "Iniciar sesión como docente",
-        "description": "Inicio de sesión docente con dui y contrasena. profesorId es un identificador interno devuelto después de autenticar, no el usuario del formulario.",
+        "description": "Inicio de sesión docente con DUI (dui o profesorId) y contrasena. El identificador es texto de hasta 9 caracteres y conserva sus ceros iniciales.",
         "requestBody": {
           "required": true,
           "content": {
@@ -126,9 +126,9 @@
             "required": true,
             "description": "Id del docente.",
             "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 2147483647
+              "type": "string",
+              "pattern": "^[A-Za-z0-9]{1,9}$",
+              "example": "001234567"
             }
           }
         ],
@@ -336,121 +336,6 @@
         ]
       }
     },
-    "/api/v1/cursos/{cursoId}/estudiantes/cargaMasiva": {
-      "post": {
-        "tags": [
-          "Estudiantes"
-        ],
-        "summary": "Carga masiva de estudiantes",
-        "parameters": [
-          {
-            "name": "cursoId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 2147483647
-            },
-            "description": "Identificador del curso"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "archivo"
-                ],
-                "properties": {
-                  "archivo": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "Archivo .xlsx o .csv"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Estudiantes incorporados",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/cargaEstudiantes"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Parámetros o cuerpo inválidos",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Curso no encontrado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/NoAutenticado"
-          },
-          "403": {
-            "$ref": "#/components/responses/Prohibido"
-          },
-          "500": {
-            "description": "Error interno del servidor",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflicto de CIF o correo",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "El archivo supera 2 MB",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "description": "Carga transaccional de estudiantes, no de notas. Campo multipart archivo: CSV UTF-8 (coma o punto y coma) o XLSX de una hoja. Cuatro encabezados: cif,nombre,apellidos,email. Todas las celdas XLSX deben ser texto, incluido CIF. Máximo 1000 filas y 2 MB comprimidos (20 MB descomprimidos). Los CIF existentes no actualizan datos personales; solo se matriculan si pertenecen a la misma carrera. Duplicados se omiten; un error revierte toda la carga. Nuevas matrículas dejan los tres registros en borrador."
-      }
-    },
     "/api/v1/cursos/{cursoId}/calificaciones": {
       "get": {
         "tags": [
@@ -529,7 +414,7 @@
           "Calificaciones"
         ],
         "summary": "Guardar las calificaciones",
-        "description": "Actualización parcial por matrícula dentro de una sola transacción. Campos omitidos conservan su valor; null elimina la nota. Cada elemento incluye matriculaId y al menos una nota. Máximo 1000 matrículas sin repetir. Rechaza notaFinal, estado y campos desconocidos. Las notas se redondean a dos decimales. Los registros cuyo valor cambia quedan despublicados hasta una nueva publicación; reposicion no afecta la fórmula ni tiene una regla académica impuesta.",
+        "description": "Guarda masivamente borradores en PostgreSQL, incluso incompletos. Los campos omitidos se conservan; null borra una nota. Los registros cuyas notas ordinarias cambian quedan sin publicar. No importa archivos ni incorpora estudiantes.",
         "parameters": [
           {
             "name": "cursoId",
@@ -602,6 +487,16 @@
           },
           "500": {
             "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Falta autorizar y preparar el esquema para borradores y publicaciones",
             "content": {
               "application/json": {
                 "schema": {
@@ -705,6 +600,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Falta autorizar y preparar el esquema para borradores y publicaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -779,6 +684,16 @@
           },
           "500": {
             "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Falta autorizar y preparar el esquema para borradores y publicaciones",
             "content": {
               "application/json": {
                 "schema": {
@@ -906,6 +821,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Falta autorizar y preparar el esquema para borradores y publicaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -987,6 +912,16 @@
           },
           "500": {
             "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Falta autorizar y preparar el esquema para borradores y publicaciones",
             "content": {
               "application/json": {
                 "schema": {
@@ -1169,7 +1104,7 @@
           "Docente"
         ],
         "summary": "Cambio de contraseña",
-        "description": "Actualiza la contraseña del docente autenticado, verifica la actual y guarda bcrypt en contrasena_hash. Revoca las demás sesiones del modelo sesiones_docentes; conserva el token actual.",
+        "description": "Verifica la contraseña actual y actualiza contrahash con bcrypt. Los tokens firmados existentes conservan su vencimiento de 8 horas; no hay tabla de sesiones ni revocación individual.",
         "parameters": [
           {
             "name": "profesorId",
@@ -1177,8 +1112,9 @@
             "required": true,
             "description": "Id del profesor.",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "pattern": "^[A-Za-z0-9]{1,9}$",
+              "example": "001234567"
             }
           }
         ],
@@ -1268,9 +1204,9 @@
             "required": true,
             "description": "Id del docente.",
             "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 2147483647
+              "type": "string",
+              "pattern": "^[A-Za-z0-9]{1,9}$",
+              "example": "001234567"
             }
           }
         ],
@@ -1376,6 +1312,121 @@
           }
         }
       }
+    },
+    "/api/v1/cursos/{cursoId}/calificaciones/publicacion": {
+      "post": {
+        "tags": [
+          "Calificaciones"
+        ],
+        "summary": "Guardar y publicar cambios masivos de la tabla",
+        "description": "Una única transacción guarda las notas enviadas y publica sus registros ordinarios. Cada registro seleccionado exige nota para todos los matriculados; si falla alguno no guarda ni publica ninguna parte. Un arreglo vacío publica los registros guardados aún en borrador con alguna nota. Reposición no interviene en la final. No incorpora estudiantes.",
+        "parameters": [
+          {
+            "name": "cursoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/calificacionesPublicar"
+              },
+              "example": {
+                "calificaciones": [
+                  {
+                    "matriculaId": 1,
+                    "nota1": 8.5,
+                    "nota2": 7.5,
+                    "nota3": 9,
+                    "reposicion": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lote guardado y publicado atómicamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicacionMasivaRes"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros o cuerpo inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Curso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/NoAutenticado"
+          },
+          "403": {
+            "$ref": "#/components/responses/Prohibido"
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Registro incompleto o sin registros ordinarios pendientes; toda la transacción se revierte",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Falta autorizar y preparar el esquema para borradores y publicaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1420,11 +1471,27 @@
             "maxLength": 72,
             "writeOnly": true,
             "description": "Contraseña del docente. Límite adicional: 72 bytes UTF-8. No es su DUI."
+          },
+          "profesorId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]{1,9}$",
+            "description": "Alias de dui usado por el formulario actual; conserva los ceros iniciales."
           }
         },
         "required": [
-          "dui",
           "contrasena"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "dui"
+            ]
+          },
+          {
+            "required": [
+              "profesorId"
+            ]
+          }
         ]
       },
       "login": {
@@ -1442,8 +1509,9 @@
             "type": "object",
             "properties": {
               "profesorId": {
-                "type": "integer",
-                "example": 1
+                "type": "string",
+                "pattern": "^[A-Za-z0-9]{1,9}$",
+                "example": "001234567"
               },
               "nombre": {
                 "type": "string",
@@ -1505,6 +1573,14 @@
           "total_estudiantes": {
             "type": "integer",
             "example": 25
+          },
+          "edicionDisponible": {
+            "type": "boolean",
+            "description": "En el detalle: indica si el esquema permite guardar borradores y publicar."
+          },
+          "publicacionDisponible": {
+            "type": "boolean",
+            "description": "En el detalle: indica si existe almacenamiento del estado académico."
           }
         },
         "required": [
@@ -1565,7 +1641,8 @@
         "properties": {
           "matriculaId": {
             "type": "integer",
-            "example": 1
+            "example": 1,
+            "description": "Nombre conservado por compatibilidad: estudianteid dentro de la matrícula compuesta (cursoId/asignaturaid, estudianteid). Siempre está limitado a la asignatura solicitada; no es un ID global de matrícula."
           },
           "nombre": {
             "type": "string",
@@ -1581,46 +1658,6 @@
           "nombre"
         ]
       },
-      "cargaEstudiantes": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "example": "success"
-          },
-          "message": {
-            "type": "string",
-            "example": "Operación exitosa"
-          },
-          "data": {
-            "type": "object",
-            "properties": {
-              "totalRecibidos": {
-                "type": "integer",
-                "example": 25
-              },
-              "incorporados": {
-                "type": "integer",
-                "example": 24
-              },
-              "omitidos": {
-                "type": "integer",
-                "example": 1
-              }
-            },
-            "required": [
-              "totalRecibidos",
-              "incorporados",
-              "omitidos"
-            ]
-          }
-        },
-        "required": [
-          "status",
-          "message",
-          "data"
-        ]
-      },
       "calificacion": {
         "type": "object",
         "properties": {
@@ -1630,7 +1667,8 @@
           },
           "matriculaId": {
             "type": "integer",
-            "example": 1
+            "example": 1,
+            "description": "Nombre conservado por compatibilidad: estudianteid dentro de la matrícula compuesta (cursoId/asignaturaid, estudianteid). Siempre está limitado a la asignatura solicitada; no es un ID global de matrícula."
           },
           "nota1": {
             "type": "number",
@@ -1677,7 +1715,8 @@
             "type": "string",
             "enum": [
               "BORRADOR",
-              "PUBLICADO"
+              "PUBLICADO",
+              "SIN_ESTADO"
             ],
             "example": "BORRADOR",
             "description": "Resumen de solo lectura derivado de registrosPublicados. La publicación real es por curso y registro (1, 2, 3).",
@@ -1730,7 +1769,8 @@
         "properties": {
           "matriculaId": {
             "type": "integer",
-            "example": 1
+            "example": 1,
+            "description": "Nombre conservado por compatibilidad: estudianteid dentro de la matrícula compuesta (cursoId/asignaturaid, estudianteid). Siempre está limitado a la asignatura solicitada; no es un ID global de matrícula."
           },
           "nota1": {
             "type": "number",
@@ -1986,8 +2026,9 @@
             "type": "object",
             "properties": {
               "profesorId": {
-                "type": "integer",
-                "example": 1
+                "type": "string",
+                "pattern": "^[A-Za-z0-9]{1,9}$",
+                "example": "001234567"
               },
               "correo": {
                 "type": "string",
@@ -2025,8 +2066,9 @@
             "type": "object",
             "properties": {
               "profesorId": {
-                "type": "integer",
-                "example": 1
+                "type": "string",
+                "pattern": "^[A-Za-z0-9]{1,9}$",
+                "example": "001234567"
               },
               "nombre": {
                 "type": "string",
@@ -2043,6 +2085,76 @@
               "profesorId",
               "nombre"
             ]
+          }
+        }
+      },
+      "calificacionesPublicar": {
+        "type": "object",
+        "properties": {
+          "calificaciones": {
+            "type": "array",
+            "minItems": 0,
+            "items": {
+              "$ref": "#/components/schemas/calificacionEntrada"
+            },
+            "maxItems": 1000
+          }
+        },
+        "required": [
+          "calificaciones"
+        ]
+      },
+      "publicacionMasivaRes": {
+        "type": "object",
+        "required": [
+          "status",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "calificaciones",
+              "registros",
+              "registrosPublicados"
+            ],
+            "properties": {
+              "calificaciones": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/calificacion"
+                }
+              },
+              "registros": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3
+                }
+              },
+              "registrosPublicados": {
+                "type": "object",
+                "properties": {
+                  "registro1": {
+                    "type": "boolean"
+                  },
+                  "registro2": {
+                    "type": "boolean"
+                  },
+                  "registro3": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
           }
         }
       }

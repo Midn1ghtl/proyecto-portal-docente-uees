@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const sql = require("../config/BasedeDatos");
 const { crearToken, leerToken, tokenDeCabecera } = require("../Verificacion/TokenSesion");
 
+function crearLoginRouter(sql) {
 const router = express.Router();
 
 // El ProfesorId es texto de hasta 9 caracteres (ej. "024565789"): NO convertir a número,
@@ -14,13 +15,13 @@ const nombreCompleto = (p) => `${p.nombre} ${p.apellidos}`.trim();
 // POST /api/v1/login  -> body: { profesorId, contrasena }  (también se acepta "dui" por compatibilidad)
 router.post("/login", async (req, res) => {
   const cuerpo = req.body || {};
-  const id = String(cuerpo.profesorId ?? "").trim();
-  const contrasena = cuerpo.contrasena ?? cuerpo.password ?? cuerpo.dui;
+  const id = String(cuerpo.profesorId ?? cuerpo.dui ?? "").trim().replace(/^(\d{8})-(\d)$/, "$1$2");
+  const contrasena = cuerpo.contrasena ?? cuerpo.password;
 
-  if (!id || !contrasena || !ID_VALIDO.test(id)) {
+  if (!id || typeof contrasena !== "string" || !contrasena || Buffer.byteLength(contrasena, "utf8") > 72 || !ID_VALIDO.test(id)) {
     return res.status(400).json({
       status: "error",
-      message: "profesorId y contrasena son obligatorios"
+      message: "Envía DUI o profesorId y una contraseña de hasta 72 bytes"
     });
   }
 
@@ -111,4 +112,7 @@ router.get("/sesion", async (req, res) => {
   }
 });
 
-module.exports = router;
+return router;
+}
+module.exports = crearLoginRouter(sql);
+module.exports.crearLoginRouter = crearLoginRouter;

@@ -23,7 +23,9 @@ function crearToken(profesorId) {
 // Devuelve el profesorId (texto) si el token es válido y no ha expirado; si no, null.
 function leerToken(token) {
   if (typeof token !== "string") return null;
-  const [payload, firma] = token.split(".");
+  const partes = token.split(".");
+  if (partes.length !== 2) return null;
+  const [payload, firma] = partes;
   if (!payload || !firma) return null;
 
   const esperada = firmar(payload);
@@ -33,7 +35,7 @@ function leerToken(token) {
 
   try {
     const datos = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    if (!datos.p || !(datos.exp > Date.now())) return null;
+    if (typeof datos.p !== "string" || !/^[A-Za-z0-9]{1,9}$/.test(datos.p) || !Number.isFinite(datos.exp) || !(datos.exp > Date.now())) return null;
     return String(datos.p);
   } catch {
     return null;

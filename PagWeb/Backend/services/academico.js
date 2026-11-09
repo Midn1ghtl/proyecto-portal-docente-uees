@@ -1,4 +1,3 @@
-const crypto = require("node:crypto");
 const bcrypt = require("bcryptjs");
 const CAMPOS = ["nota1", "nota2", "nota3", "reposicion"];
 const fallo = (status, message) => Object.assign(new Error(message), { status });
@@ -6,6 +5,12 @@ function id(valor, nombre = "Identificador") {
   const n = typeof valor === "number" ? valor : /^\d+$/.test(String(valor)) ? Number(valor) : NaN;
   if (!Number.isSafeInteger(n) || n <= 0 || n > 2147483647) throw fallo(400, nombre + " inválido");
   return n;
+}
+// El ID del docente es textual: conserva ceros iniciales y letras.
+function idProfesor(valor) {
+  const texto = String(valor ?? '');
+  if (!/^[A-Za-z0-9]{1,9}$/.test(texto)) throw fallo(400, 'profesorId inválido');
+  return texto;
 }
 function objeto(value) { return value && typeof value === "object" && !Array.isArray(value); }
 function notas(body, conMatricula = false) {
@@ -30,23 +35,8 @@ function correo(value) {
     throw fallo(400,"Correo electrónico inválido (máximo 150 caracteres)");
   return value.trim().toLowerCase();
 }
-function validarEstudiantes(rows) {
-  if (!Array.isArray(rows) || !rows.length || rows.length > 1000) throw fallo(400,"El archivo debe contener entre 1 y 1000 estudiantes");
-  return rows.map((r,index) => {
-    if (!objeto(r) || Object.keys(r).length !== 4 || !["cif","nombre","apellidos","email"].every(k=>Object.hasOwn(r,k)))
-      throw fallo(400,"Columnas requeridas: cif,nombre,apellidos,email");
-    const out = {};
-    for (const [key,max] of [["cif",20],["nombre",100],["apellidos",100]]) {
-      if (typeof r[key] !== "string" || !r[key].trim() || r[key].trim().length > max || /[\u0000-\u001f]/.test(r[key]))
-        throw fallo(400,`Fila ${index+2}: ${key} debe ser texto de 1 a ${max} caracteres`);
-      out[key] = r[key].trim();
-    }
-    out.email = correo(r.email);
-    return out;
-  });
-}
 const SELECT_CURSO = `SELECT a.asignaturaid AS id_curso, a.profesorid, a.cursoid AS carrera_id,
-  coalesce(a.codigo,'') AS codigo_asignatura, a.nombre AS nombre_asignatura,
+  coalesce(to_jsonb(a)->>'codigo','') AS codigo_asignatura, a.nombre AS nombre_asignatura,
   concat_ws(' ',p.nombre,p.apellidos) AS profesor, c.horario,
   (SELECT count(*)::int FROM universidaduees.matricula m WHERE m.asignaturaid=a.asignaturaid) AS total_estudiantes
   FROM universidaduees.asignaturas a JOIN universidaduees.cursos c ON c.cursoid=a.cursoid
@@ -59,67 +49,57 @@ async function exigirCurso(db,profesorId,cursoId,bloquear=false) {
   const result = await db.query(SELECT_CURSO+" WHERE a.asignaturaid=$1"+(bloquear ? " FOR UPDATE OF a" : ""),[cursoId]);
   const curso = result.rows[0];
   if (!curso) throw fallo(404,"Curso no encontrado");
-  if (Number(curso.profesorid)!==profesorId) throw fallo(403,"No tienes acceso a este curso");
+  if (String(curso.profesorid)!==profesorId) throw fallo(403,"No tienes acceso a este curso");
   return curso;
 }
+async function estadoEsquema(db) {
+  const {rows}=await db.query(`SELECT
+    to_regclass('universidaduees.publicaciones_registros') IS NOT NULL AS publicaciones,
+    (SELECT count(*)=4 FROM information_schema.columns WHERE table_schema='universidaduees'
+      AND table_name='calificaciones' AND column_name IN ('nota1','nota2','nota3','notafinal') AND is_nullable='YES') AS borradores,
+    EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='universidaduees'
+      AND table_name='calificaciones' AND column_name='calificacionid' AND (is_identity='YES' OR column_default IS NOT NULL)) AS ids`);
+  return {edicionDisponible: rows[0].publicaciones && rows[0].borradores && rows[0].ids,
+    publicacionDisponible: rows[0].publicaciones};
+}
 async function publicaciones(db,cursoId) {
+  if (!(await estadoEsquema(db)).publicacionDisponible) return {registro1:false,registro2:false,registro3:false};
   const result = await db.query("SELECT registro,publicado FROM universidaduees.publicaciones_registros WHERE asignaturaid=$1",[cursoId]);
   const flags = {registro1:false,registro2:false,registro3:false};
   for (const row of result.rows) flags['registro'+row.registro]=row.publicado;
   return flags;
 }
 async function leerNotas(db,cursoId) {
+  const esquema=await estadoEsquema(db);
   const flags = await publicaciones(db,cursoId);
-  const {rows} = await db.query(`SELECT c.calificacionid AS "calificacionId", m.matricula_id AS "matriculaId",
-    c.nota1,c.nota2,c.nota3,c.reposicion,c.nota_final_calculada AS "notaFinal"
+  const {rows} = await db.query(`SELECT c.calificacionid AS "calificacionId", m.estudianteid AS "matriculaId",
+    c.nota1,c.nota2,c.nota3,c.reposicion,CASE WHEN c.nota1 IS NULL OR c.nota2 IS NULL OR c.nota3 IS NULL THEN NULL ELSE round(c.nota1*0.30+c.nota2*0.30+c.nota3*0.40,2) END AS "notaFinal"
     FROM universidaduees.calificaciones c JOIN universidaduees.matricula m
       ON m.asignaturaid=c.asignaturaid AND m.estudianteid=c.estudianteid
-    WHERE m.asignaturaid=$1 ORDER BY m.matricula_id`,[cursoId]);
+    WHERE m.asignaturaid=$1 ORDER BY m.estudianteid`,[cursoId]);
   return rows.map(r=>({...r,...Object.fromEntries([...CAMPOS,"notaFinal"].map(k=>[k,r[k]===null?null:Number(r[k])])),
-    estado:Object.values(flags).some(Boolean)?"PUBLICADO":"BORRADOR",registrosPublicados:{...flags}}));
+    estado:!esquema.publicacionDisponible?"SIN_ESTADO":Object.values(flags).some(Boolean)?"PUBLICADO":"BORRADOR",registrosPublicados:{...flags}}));
 }
 async function despublicar(db,cursoId,registros) {
   if (!registros.length) return;
   await db.query(`UPDATE universidaduees.publicaciones_registros SET publicado=false,actualizado_en=now()
     WHERE asignaturaid=$1 AND registro=ANY($2::smallint[])`,[cursoId,registros]);
 }
-function crearAcademico(db) {
-  async function conCurso(profesor,curso,work,escritura=false) {
-    const profesorId=id(profesor,"profesorId"), cursoId=id(curso,"cursoId");
-    return db.transaction(async tx=>{
-      const detalle=await exigirCurso(tx,profesorId,cursoId,escritura);
-      return work(tx,detalle,cursoId,profesorId);
-    },!escritura);
-  }
-  return {
-    async cursos(profesor,propietario) {
-      const p=id(profesor,"profesorId"), objetivo=id(propietario,"profesorId");
-      if (p!==objetivo) throw fallo(403,"No tienes acceso a estos cursos");
-      const existe=await db.query("SELECT profesorid FROM universidaduees.profesores WHERE profesorid=$1",[p]);
-      if (!existe.rows.length) throw fallo(404,"Docente no encontrado");
-      const result=await db.query(SELECT_CURSO+" WHERE a.profesorid=$1 ORDER BY a.nombre,a.asignaturaid",[p]);
-      return result.rows.map(cursoPublico);
-    },
-    detalle: (p,c)=>conCurso(p,c,async(tx,detalle)=>cursoPublico(detalle)),
-    estudiantes: (p,c)=>conCurso(p,c,async(tx,detalle,cursoId)=>{
-      const result=await tx.query(`SELECT m.matricula_id AS "matriculaId",concat_ws(' ',e.nombre,e.apellidos) AS nombre,e.cif
-        FROM universidaduees.matricula m JOIN universidaduees.estudiantes e ON e.estudianteid=m.estudianteid
-        WHERE m.asignaturaid=$1 ORDER BY e.nombre,e.apellidos,m.matricula_id`,[cursoId]);
-      return result.rows;
-    }),
-    calificaciones: (p,c)=>conCurso(p,c,(tx,detalle,cursoId)=>leerNotas(tx,cursoId)),
-    async guardar(p,c,body) {
+function entradasDe(body, permitirVacio=false) {
       if (!objeto(body) || Object.keys(body).some(k=>k!=="calificaciones") || !Array.isArray(body.calificaciones) ||
-          !body.calificaciones.length || body.calificaciones.length>1000) throw fallo(400,"Envía entre 1 y 1000 calificaciones");
-      const entradas=body.calificaciones.map(e=>notas(e,true));
+          (!permitirVacio && !body.calificaciones.length) || body.calificaciones.length>1000) throw fallo(400,"Envía entre 1 y 1000 calificaciones");
+  const entradas=body.calificaciones.map(e=>notas(e,true));
       if (new Set(entradas.map(e=>e.matriculaId)).size!==entradas.length) throw fallo(400,"No repitas la misma matrícula en una petición");
-      return conCurso(p,c,async(tx,detalle,cursoId,profesorId)=>{
-        const result=await tx.query(`SELECT m.matricula_id,m.estudianteid,c.nota1,c.nota2,c.nota3,c.reposicion
+  return entradas;
+}
+async function guardarEn(tx,cursoId,profesorId,entradas) {
+  if (!entradas.length) return [];
+        const result=await tx.query(`SELECT m.estudianteid,c.nota1,c.nota2,c.nota3,c.reposicion
           FROM universidaduees.matricula m LEFT JOIN universidaduees.calificaciones c
           ON c.asignaturaid=m.asignaturaid AND c.estudianteid=m.estudianteid
-          WHERE m.asignaturaid=$1 AND m.matricula_id=ANY($2::int[])`,[cursoId,entradas.map(e=>e.matriculaId)]);
+          WHERE m.asignaturaid=$1 AND m.estudianteid=ANY($2::int[])`,[cursoId,entradas.map(e=>e.matriculaId)]);
         if (result.rows.length!==entradas.length) throw fallo(400,"Una matrícula no pertenece a este curso");
-        const guardadas=new Map(result.rows.map(r=>[r.matricula_id,r]));const registros=new Set();
+        const guardadas=new Map(result.rows.map(r=>[r.estudianteid,r]));const registros=new Set();
         const datos=entradas.map(e=>{
           const previa=guardadas.get(e.matriculaId);const fila={estudianteid:previa.estudianteid};
           CAMPOS.forEach((campo,i)=>{
@@ -138,7 +118,68 @@ function crearAcademico(db) {
             nota1=excluded.nota1,nota2=excluded.nota2,nota3=excluded.nota3,
             reposicion=excluded.reposicion,notafinal=excluded.notafinal,docenteid=excluded.docenteid`,[cursoId,profesorId,JSON.stringify(datos)]);
         await despublicar(tx,cursoId,[...registros]);
+  return [...registros];
+}
+async function publicarRegistro(tx,cursoId,r) {
+  const campo=['nota1','nota2','nota3'][r-1];
+  const {rows}=await tx.query(`SELECT count(*)::int AS total,count(c.${campo})::int AS completas
+    FROM universidaduees.matricula m LEFT JOIN universidaduees.calificaciones c
+    ON c.asignaturaid=m.asignaturaid AND c.estudianteid=m.estudianteid WHERE m.asignaturaid=$1`,[cursoId]);
+  if(!rows[0].total || rows[0].total!==rows[0].completas)
+    throw fallo(422,`Registro ${r}: ${rows[0].total-rows[0].completas} estudiante(s) sin nota. No se guardó ni publicó ninguna parte de este envío. Conserva tus cambios o guárdalos como borrador.`);
+  await tx.query(`INSERT INTO universidaduees.publicaciones_registros(asignaturaid,registro,publicado)
+    VALUES($1,$2,true) ON CONFLICT(asignaturaid,registro) DO UPDATE SET publicado=true,actualizado_en=now()`,[cursoId,r]);
+}
+
+function crearAcademico(db) {
+  async function conCurso(profesor,curso,work,escritura=false) {
+    const profesorId=idProfesor(profesor), cursoId=id(curso,"cursoId");
+    return db.transaction(async tx=>{
+      const detalle=await exigirCurso(tx,profesorId,cursoId,escritura);
+      if (escritura && !(await estadoEsquema(tx)).edicionDisponible) throw fallo(503,'La consulta está disponible. Para guardar borradores y publicar falta autorizar la preparación de la base de datos.');
+      return work(tx,detalle,cursoId,profesorId);
+    },!escritura);
+  }
+  return {
+    async cursos(profesor,propietario) {
+      const p=idProfesor(profesor), objetivo=idProfesor(propietario);
+      if (p!==objetivo) throw fallo(403,"No tienes acceso a estos cursos");
+      const existe=await db.query("SELECT profesorid FROM universidaduees.profesores WHERE profesorid=$1",[p]);
+      if (!existe.rows.length) throw fallo(404,"Docente no encontrado");
+      const result=await db.query(SELECT_CURSO+" WHERE a.profesorid=$1 ORDER BY a.nombre,a.asignaturaid",[p]);
+      return result.rows.map(cursoPublico);
+    },
+    detalle: (p,c)=>conCurso(p,c,async(tx,detalle)=>({...cursoPublico(detalle),...await estadoEsquema(tx)})),
+    estudiantes: (p,c)=>conCurso(p,c,async(tx,detalle,cursoId)=>{
+      const result=await tx.query(`SELECT m.estudianteid AS "matriculaId",concat_ws(' ',e.nombre,e.apellidos) AS nombre,e.cif
+        FROM universidaduees.matricula m JOIN universidaduees.estudiantes e ON e.estudianteid=m.estudianteid
+        WHERE m.asignaturaid=$1 ORDER BY e.nombre,e.apellidos,m.estudianteid`,[cursoId]);
+      return result.rows;
+    }),
+    calificaciones: (p,c)=>conCurso(p,c,(tx,detalle,cursoId)=>leerNotas(tx,cursoId)),
+    async guardar(p,c,body) {
+      const entradas=entradasDe(body);
+      return conCurso(p,c,async(tx,detalle,cursoId,profesorId)=>{
+        await guardarEn(tx,cursoId,profesorId,entradas);
         return leerNotas(tx,cursoId);
+      },true);
+    },
+    async publicarCambios(p,c,body) {
+      const entradas=entradasDe(body,true);
+      return conCurso(p,c,async(tx,detalle,cursoId,profesorId)=>{
+        await guardarEn(tx,cursoId,profesorId,entradas);
+        // Publica los registros ordinarios incluidos. Sin ediciones, publica los
+        // registros guardados aún en borrador que contengan al menos una nota.
+        let registros=[1,2,3].filter(r=>entradas.some(e=>Object.hasOwn(e,'nota'+r)));
+        if (entradas.length && !registros.length) throw fallo(422,'La reposición es un dato adicional sin registro de publicación definido. Usa Guardar cambios como borrador.');
+        if (!registros.length) {
+          const flags=await publicaciones(tx,cursoId);
+          const {rows}=await tx.query('SELECT count(nota1)::int AS n1,count(nota2)::int AS n2,count(nota3)::int AS n3 FROM universidaduees.calificaciones WHERE asignaturaid=$1',[cursoId]);
+          registros=[1,2,3].filter(r=>!flags['registro'+r] && rows[0]['n'+r]>0);
+        }
+        if(!registros.length) throw fallo(422,'No hay registros ordinarios pendientes de publicación. Puedes guardar la reposición como dato adicional en borrador.');
+        for(const r of registros) await publicarRegistro(tx,cursoId,r);
+        return {calificaciones:await leerNotas(tx,cursoId),registrosPublicados:await publicaciones(tx,cursoId),registros};
       },true);
     },
     async cambiar(p,c,calificacion,body) {
@@ -177,55 +218,33 @@ function crearAcademico(db) {
         return {cursoId,registro:r,publicado:publicar};
       },true);
     },
-    async importar(p,c,rows) {
-      const recibidas=validarEstudiantes(rows);
-      const unicas=[...new Map(recibidas.map(r=>[r.cif,r])).values()];
-      return conCurso(p,c,async(tx,detalle,cursoId)=>{
-        const datos=unicas.map(r=>({...r,matricula_legacy:crypto.randomUUID()}));
-        await tx.query(`INSERT INTO universidaduees.estudiantes(nombre,apellidos,cif,email,matriculaid,cursoid)
-          SELECT x.nombre,x.apellidos,x.cif,x.email,x.matricula_legacy,$2
-          FROM jsonb_to_recordset($1::jsonb) AS x(nombre text,apellidos text,cif text,email text,matricula_legacy text)
-          ON CONFLICT(cif) DO NOTHING`,[JSON.stringify(datos),detalle.carrera_id]);
-        const cifs=unicas.map(r=>r.cif);
-        const existentes=await tx.query("SELECT estudianteid,cursoid FROM universidaduees.estudiantes WHERE cif=ANY($1::varchar[])",[cifs]);
-        if(existentes.rows.length!==unicas.length||existentes.rows.some(e=>e.cursoid!==detalle.carrera_id))throw fallo(400,"Un estudiante pertenece a otra carrera; no se modificó su información");
-        const incorporadas=await tx.query(`INSERT INTO universidaduees.matricula(asignaturaid,estudianteid,cursoid)
-          SELECT $1,e.estudianteid,e.cursoid FROM universidaduees.estudiantes e WHERE e.cif=ANY($2::varchar[])
-          ON CONFLICT(asignaturaid,estudianteid) DO NOTHING RETURNING matricula_id`,[cursoId,cifs]);
-        if(incorporadas.rows.length)await despublicar(tx,cursoId,[1,2,3]);
-        return {totalRecibidos:recibidas.length,incorporados:incorporadas.rows.length,omitidos:recibidas.length-incorporadas.rows.length};
-      },true);
-    },
     informe: (p,c)=>conCurso(p,c,async(tx,detalle,cursoId)=>{
       const {rows}=await tx.query(`SELECT e.cif,concat_ws(' ',e.nombre,e.apellidos) AS nombre,
-        c.nota1,c.nota2,c.nota3,c.reposicion,c.nota_final_calculada AS "notaFinal"
+        c.nota1,c.nota2,c.nota3,c.reposicion,CASE WHEN c.nota1 IS NULL OR c.nota2 IS NULL OR c.nota3 IS NULL THEN NULL ELSE round(c.nota1*0.30+c.nota2*0.30+c.nota3*0.40,2) END AS "notaFinal"
         FROM universidaduees.matricula m JOIN universidaduees.estudiantes e ON e.estudianteid=m.estudianteid
         LEFT JOIN universidaduees.calificaciones c ON c.asignaturaid=m.asignaturaid AND c.estudianteid=m.estudianteid
-        WHERE m.asignaturaid=$1 ORDER BY e.nombre,e.apellidos,m.matricula_id`,[cursoId]);
-      return {curso:cursoPublico(detalle),registrosPublicados:await publicaciones(tx,cursoId),estudiantes:rows.map(r=>({...r,
+        WHERE m.asignaturaid=$1 ORDER BY e.nombre,e.apellidos,m.estudianteid`,[cursoId]);
+      return {curso:cursoPublico(detalle),...await estadoEsquema(tx),registrosPublicados:await publicaciones(tx,cursoId),estudiantes:rows.map(r=>({...r,
         ...Object.fromEntries([...CAMPOS,"notaFinal"].map(k=>[k,r[k]===null?null:Number(r[k])]))}))};
     }),
-    async contrasena(p,propietario,body,authorization) {
-      const profesorId=id(p,"profesorId");
-      if(profesorId!==id(propietario,"profesorId"))throw fallo(403,"No puedes modificar otro docente");
+    async contrasena(p,propietario,body) {
+      const profesorId=idProfesor(p);
+      if(profesorId!==idProfesor(propietario))throw fallo(403,"No puedes modificar otro docente");
       if(!objeto(body)||Object.keys(body).length!==2||!Object.hasOwn(body,"contraseñaActual")||!Object.hasOwn(body,"contraseñaNueva"))
         throw fallo(400,"Envía contraseñaActual y contraseñaNueva");
       const actual=body['contraseñaActual'],nueva=body['contraseñaNueva'];
       if(typeof actual!=='string'||!actual||Buffer.byteLength(actual,'utf8')>72||typeof nueva!=='string'||nueva.length<8||Buffer.byteLength(nueva,'utf8')>72)
         throw fallo(400,"La nueva contraseña necesita al menos 8 caracteres y como máximo 72 bytes UTF-8");
       return db.transaction(async tx=>{
-        const {rows}=await tx.query("SELECT contrasena_hash FROM universidaduees.profesores WHERE profesorid=$1 FOR UPDATE",[profesorId]);
+        const {rows}=await tx.query("SELECT contrahash FROM universidaduees.profesores WHERE profesorid=$1 FOR UPDATE",[profesorId]);
         if(!rows.length)throw fallo(404,"Docente no encontrado");
-        if(!rows[0].contrasena_hash||!await bcrypt.compare(actual,rows[0].contrasena_hash))throw fallo(401,"Contraseña actual incorrecta");
+        if(!rows[0].contrahash||!await bcrypt.compare(actual,rows[0].contrahash))throw fallo(401,"Contraseña actual incorrecta");
         const hash=await bcrypt.hash(nueva,12);
-        await tx.query("UPDATE universidaduees.profesores SET contrasena_hash=$2 WHERE profesorid=$1",[profesorId,hash]);
-        const token=typeof authorization==='string'&&authorization.startsWith('Bearer ')?authorization.slice(7):'';
-        const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
-        await tx.query("DELETE FROM universidaduees.sesiones_docentes WHERE profesor_id=$1 AND token_hash<>$2",[profesorId,tokenHash]);
+        await tx.query("UPDATE universidaduees.profesores SET contrahash=$2 WHERE profesorid=$1",[profesorId,hash]);
       });
     },
     async email(p,propietario,body) {
-      const profesorId=id(p,"profesorId");if(profesorId!==id(propietario,"profesorId"))throw fallo(403,"No puedes modificar otro docente");
+      const profesorId=idProfesor(p);if(profesorId!==idProfesor(propietario))throw fallo(403,"No puedes modificar otro docente");
       if(!objeto(body)||Object.keys(body).length!==1)throw fallo(400,"Envía únicamente correo");
       const email=correo(body.correo);
       const {rows}=await db.query("UPDATE universidaduees.profesores SET email=$2 WHERE profesorid=$1 RETURNING profesorid",[profesorId,email]);
@@ -234,4 +253,4 @@ function crearAcademico(db) {
     }
   };
 }
-module.exports={crearAcademico,exigirCurso,id,fallo};
+module.exports={crearAcademico,exigirCurso,id,idProfesor,fallo,estadoEsquema};
