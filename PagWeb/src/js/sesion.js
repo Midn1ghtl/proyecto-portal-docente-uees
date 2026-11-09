@@ -1,4 +1,6 @@
-// esto va en los head de las páginas que requieren sesión iniciada
+// src/js/sesion.js
+// Debe cargarse en el <head>, ANTES de main.js y de los scripts de cada página.
+// Define window.Portal con: Portal.api, Portal.esc y Portal.listo.
 
 (function () {
     const API = window.PORTAL_API_URL;
@@ -81,7 +83,7 @@
         api("/sesion")
             .then((r) => {
                 const docente = {
-                    profesorId: Number(r.data?.profesorId ?? localStorage.getItem("profesorId")),
+                    profesorId: String(r.data?.profesorId ?? localStorage.getItem("profesorId") ?? ""),
                     nombre: r.data?.nombre ?? localStorage.getItem("nombre"),
                     carnet: r.data?.carnet ?? ""
                 };
