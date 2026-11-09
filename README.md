@@ -42,7 +42,13 @@ Commits representativos
 
 1. Instala las dependencias desde la raíz del repositorio con `npm install`.
 2. Configura `DATABASE_URL` en el archivo `.env` de la raíz.
-3. Inicia el sitio y la API juntos con `node PagWeb/Backend/server.js`.
+3. Inicia el sitio y la API juntos con `npm start`. Este comando prepara primero los archivos públicos.
 4. Abre `http://localhost:3000`. Para probarlo desde otro dispositivo conectado a la misma red Wi-Fi, abre `http://IP-DE-LA-COMPUTADORA:3000`.
 
-Para usar el portal desde cualquier lugar, configura en Vercel **Root Directory** como la raíz del repositorio (`.`), no como `PagWeb`: el handler de la API está en `api/`, al mismo nivel que esa carpeta. Deja **Output Directory** como `PagWeb` (o permite que `vercel.json` lo establezca), agrega `DATABASE_URL` en las variables de entorno de producción y vuelve a desplegar. Comprueba que `https://TU-DOMINIO/api/v1/login` responda `400` al enviar `{}`; un `404 NOT_FOUND` significa que Vercel todavía no publicó el handler. No abras los archivos HTML directamente con `file://`.
+Para usar el portal desde cualquier lugar, configura en Vercel **Root Directory** como la raíz del repositorio (`.`), no como `PagWeb`: el handler de la API está en `api/`, al mismo nivel que esa carpeta. Configura **Build Command** como `npm run build` y **Output Directory** como `public` (o permite que `vercel.json` los establezca). Agrega `DATABASE_URL` en las variables de entorno de producción y vuelve a desplegar. Comprueba que `https://TU-DOMINIO/api/v1/login` responda `400` al enviar `{}`; un `404 NOT_FOUND` significa que Vercel todavía no publicó el handler. No abras los archivos HTML directamente con `file://`.
+
+El build copia las páginas HTML y los recursos de `PagWeb/src` a `public/`.
+Nunca configures `PagWeb` como carpeta de salida: contiene también el código privado de `Backend/`.
+Ejecuta `npm run test:public` para comprobar que el build excluye backend y secretos.
+Después de desplegar, `/Backend/app.js` debe responder `404` y `/` debe seguir mostrando el login.
+Estas comprobaciones verifican la publicación; el inicio de sesión con credenciales requiere además una base de datos compatible.
