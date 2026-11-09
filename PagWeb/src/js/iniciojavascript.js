@@ -9,11 +9,11 @@ document.addEventListener("DOMContentLoaded", () => {
 async function ingresar(event) {
     event.preventDefault();
 
-    const profesorId = Number(document.getElementById("usuario1").value.trim());
-    const dui = document.getElementById("clave1").value.trim();
+    const profesorId = document.getElementById("usuario1").value.trim();
+    const contrasena = document.getElementById("clave1").value;
 
-    if (!profesorId || Number.isNaN(profesorId) || !dui) {
-        alert("El ID del docente (número) y el DUI son obligatorios");
+    if (!profesorId || !contrasena) {
+        alert("El ID del docente y la contraseña son obligatorios");
         return;
     }
 
@@ -25,7 +25,7 @@ async function ingresar(event) {
             },
             body: JSON.stringify({
                 profesorId,
-                dui
+                contrasena
             })
         });
 

@@ -1,34 +1,41 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
 const sql = require("../config/BasedeDatos");
+const { crearToken, leerToken, tokenDeCabecera } = require("../Verificacion/TokenSesion");
 
 const router = express.Router();
 
-// POST /api/v1/login  -> body según la API: { profesorId, dui }
-router.post("/login", async (req, res) => {
-  const { profesorId, dui } = req.body || {};
-  const id = Number(profesorId);
+// El ProfesorId es texto de hasta 9 caracteres (ej. "024565789"): NO convertir a número,
+// porque se perderían los ceros a la izquierda.
+const ID_VALIDO = /^[A-Za-z0-9]{1,9}$/;
 
-  if (!profesorId || !dui || !Number.isInteger(id) || id <= 0) {
+const nombreCompleto = (p) => `${p.nombre} ${p.apellidos}`.trim();
+
+// POST /api/v1/login  -> body: { profesorId, contrasena }  (también se acepta "dui" por compatibilidad)
+router.post("/login", async (req, res) => {
+  const cuerpo = req.body || {};
+  const id = String(cuerpo.profesorId ?? "").trim();
+  const contrasena = cuerpo.contrasena ?? cuerpo.password ?? cuerpo.dui;
+
+  if (!id || !contrasena || !ID_VALIDO.test(id)) {
     return res.status(400).json({
       status: "error",
-      message: "profesorId y dui son obligatorios"
+      message: "profesorId y contrasena son obligatorios"
     });
   }
 
   try {
     const filas = await sql`
-      SELECT profesor_id, dui_hash, nombre, correo, carnet
-      FROM profesores
-      WHERE profesor_id = ${id}
+      SELECT profesorid, nombre, apellidos, email, contrahash
+      FROM universidaduees.profesores
+      WHERE profesorid = ${id}
     `;
 
     const profesor = filas[0];
 
-    // Mismo mensaje si no existe o si el DUI no coincide
+    // Mismo mensaje si no existe o si la contraseña no coincide
     const coincide = profesor
-      ? await bcrypt.compare(String(dui), profesor.dui_hash)
+      ? await bcrypt.compare(String(contrasena), profesor.contrahash)
       : false;
 
     if (!coincide) {
@@ -38,25 +45,15 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Token aleatorio: al cliente se le da el token, a la BD solo su hash
-    const token = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-
-    await sql`DELETE FROM sesiones_docentes WHERE expires_at < NOW()`;
-    await sql`
-      INSERT INTO sesiones_docentes (token_hash, profesor_id, expires_at)
-      VALUES (${tokenHash}, ${id}, NOW() + INTERVAL '8 hours')
-    `;
-
     res.json({
       status: "success",
       message: "Operación exitosa",
       data: {
-        profesorId: Number(profesor.profesor_id),
-        nombre: profesor.nombre,
-        correo: profesor.correo,
-        carnet: profesor.carnet,
-        token
+        profesorId: String(profesor.profesorid),
+        nombre: nombreCompleto(profesor),
+        correo: profesor.email,
+        carnet: String(profesor.profesorid),
+        token: crearToken(profesor.profesorid)
       }
     });
 
@@ -69,40 +66,39 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// GET /api/v1/sesion -> consulta la BD: token válido y docente registrado.
-// Devuelve nombre y carné para mostrarlos en el portal.
+// GET /api/v1/sesion -> token válido y docente registrado.
+// Devuelve nombre e identificación para mostrarlos en el portal.
 router.get("/sesion", async (req, res) => {
-  const auth = req.headers.authorization || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  const token = tokenDeCabecera(req);
 
   if (!token) {
     return res.status(401).json({ status: "error", message: "No autorizado" });
   }
 
-  try {
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const id = leerToken(token);
 
+  if (!id) {
+    return res.status(401).json({ status: "error", message: "Sesión inválida o expirada" });
+  }
+
+  try {
     const filas = await sql`
-      SELECT p.profesor_id, p.nombre, p.carnet
-      FROM sesiones_docentes s
-      JOIN profesores p ON p.profesor_id = s.profesor_id
-      WHERE s.token_hash = ${tokenHash} AND s.expires_at > NOW()
+      SELECT profesorid, nombre, apellidos
+      FROM universidaduees.profesores
+      WHERE profesorid = ${id}
     `;
 
     if (!filas[0]) {
-      return res.status(401).json({
-        status: "error",
-        message: "Sesión inválida o expirada"
-      });
+      return res.status(401).json({ status: "error", message: "Sesión inválida o expirada" });
     }
 
     res.json({
       status: "success",
       message: "Sesión válida",
       data: {
-        profesorId: Number(filas[0].profesor_id),
-        nombre: filas[0].nombre,
-        carnet: filas[0].carnet
+        profesorId: String(filas[0].profesorid),
+        nombre: nombreCompleto(filas[0]),
+        carnet: String(filas[0].profesorid)
       }
     });
 
