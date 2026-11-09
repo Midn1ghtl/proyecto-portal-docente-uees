@@ -156,3 +156,29 @@ main {
         width: calc(100% - 70px);
     }
 }
+/* Las imágenes conservan sus proporciones y se distribuyen según el espacio. */
+.barra-lateral { flex-shrink: 0; }
+main { min-width: 0; padding: clamp(16px, 3vw, 36px); }
+main header { margin-bottom: 24px; }
+main header h1 { color: #063b73; }
+main header p { margin-top: 8px; }
+.calendarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  align-items: start;
+}
+.calendario-mes {
+  margin: 0;
+  padding: 16px;
+  background: white;
+  border: 1px solid #dceeff;
+  border-radius: 12px;
+  min-width: 0;
+}
+.calendario-mes figcaption { font-size: 1.25rem; font-weight: 600; margin-bottom: 12px; color: #063b73; }
+.calendario-mes a { display: block; }
+.calendario-mes a:focus-visible { outline: 3px solid #1677e8; outline-offset: 4px; }
+.calendario-mes img { display: block; width: 100%; height: auto; }

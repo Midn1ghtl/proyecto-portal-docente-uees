@@ -6,7 +6,13 @@
   function aviso(texto,tipo='info'){$('mensaje').className=texto?'alert alert-'+tipo:'alert d-none';$('mensaje').textContent=texto;}
   function clave(){return 'borrador_notas_'+docente.profesorId+'_'+curso.id_curso;}
   function persistir(){if(!curso)return;try{if(Object.keys(borrador).length)localStorage.setItem(clave(),JSON.stringify(borrador));else localStorage.removeItem(clave());}catch{aviso('No se pudo conservar la copia temporal del navegador.','warning');}}
-  function final(n){return [n.nota1,n.nota2,n.nota3].some(x=>x===null||x===undefined)?null:Math.round((n.nota1*.3+n.nota2*.3+n.nota3*.4+Number.EPSILON)*100)/100;}
+  const evaluar=window.CalculoNotas.evaluar;
+  function textoFinal(n){
+    const calculo=evaluar(n);
+    if(calculo.errorReposicion)return 'Revisar notas';
+    const valor=calculo.notaFinal??calculo.notaAcumulada;
+    return valor===null?'Pendiente':valor.toFixed(2);
+  }
   function actuales(m){return Object.fromEntries(CAMPOS.map(c=>[c,borrador[m]&&Object.hasOwn(borrador[m],c)?borrador[m][c]:servidor[m]?.[c]??null]));}
   function invalidas(n){return Object.values(n).some(v=>v!==null&&(typeof v!=='number'||!Number.isFinite(v)||v<0||v>10));}
   function estado(){
@@ -23,11 +29,11 @@
   }
   function pintar(){
     $('cuerpoNotas').innerHTML=estudiantes.length?estudiantes.map(e=>{
-      const m=e.matriculaId,n=actuales(m),f=final(n);
+      const m=e.matriculaId,n=actuales(m),calculo=evaluar(n);
       return '<tr data-m="'+m+'" class="'+(borrador[m]?'table-warning':'')+'">'+
       '<td><img src="src/assets/img/avatar.png" width="40" height="40" alt="Avatar" class="rounded-circle"></td><td>'+esc(e.cif)+'</td><td>'+esc(e.nombre)+'</td>'+
-      CAMPOS.map(c=>'<td><input aria-label="'+c+' de '+esc(e.nombre)+'" type="number" class="form-control form-control-sm nota" style="width:90px" min="0" max="10" step="0.01" data-campo="'+c+'" value="'+(n[c]===null?'':Number(n[c]))+'"></td>').join('')+
-      '<td class="celda-final fw-semibold">'+(!notasDisponibles?'No disponible':f===null?'Pendiente':f.toFixed(2))+'</td><td><button class="btn btn-sm btn-outline-danger" data-borrar="'+m+'">Borrar notas</button></td></tr>';
+      CAMPOS.map(c=>'<td><input aria-label="'+c+' de '+esc(e.nombre)+'" type="number" class="form-control form-control-sm nota'+(c==='reposicion'&&calculo.errorReposicion?' is-invalid':'')+'" title="'+esc(c==='reposicion'?(calculo.errorReposicion||'Nuevo promedio completo del Registro 3 (0 a 10). Vacío elimina la reposición.'):'')+'" style="width:90px" min="0" max="10" step="0.01" data-campo="'+c+'" value="'+(n[c]===null?'':Number(n[c]))+'"></td>').join('')+
+      '<td class="celda-final fw-semibold">'+(!notasDisponibles?'No disponible':textoFinal(n))+'</td><td><button class="btn btn-sm btn-outline-danger" data-borrar="'+m+'">Borrar notas</button></td></tr>';
     }).join(''):'<tr><td colspan="9">Esta asignatura no tiene estudiantes matriculados.</td></tr>';
     estado();
   }
@@ -57,13 +63,19 @@
     const tr=input.closest('tr'),m=tr.dataset.m,n={};
     tr.querySelectorAll('.nota').forEach(i=>{const v=i.validity.badInput?'inválida':i.value===''?null:Number(i.value);if(v!==(servidor[m]?.[i.dataset.campo]??null))n[i.dataset.campo]=v;i.classList.toggle('is-invalid',invalidas({v}));});
     if(!Object.keys(n).length)delete borrador[m];else borrador[m]=n;
-    tr.classList.toggle('table-warning',!!borrador[m]);const f=final(actuales(m));tr.querySelector('.celda-final').textContent=f===null||!Number.isFinite(f)?'Pendiente':f.toFixed(2);
+    tr.classList.toggle('table-warning',!!borrador[m]);tr.querySelector('.celda-final').textContent=textoFinal(actuales(m));
+    const calculo=evaluar(actuales(m));
+    const rep=Array.from(tr.querySelectorAll('.nota')).find(i=>i.dataset.campo==='reposicion');
+    if(rep){rep.classList.toggle('is-invalid',!!calculo.errorReposicion);rep.title=calculo.errorReposicion||'Nuevo promedio del Registro 3. Vacío elimina la reposición.';}
+    if(calculo.errorReposicion)aviso(calculo.errorReposicion,'warning');else aviso('');
     persistir();estado();
   });
   async function guardar(publicar=false){
     if(!curso||!notasDisponibles)return;
     const pendientes=Object.keys(borrador);if(!publicar&&!pendientes.length)return;
     if(pendientes.some(m=>invalidas(borrador[m]))){aviso('Corrige las notas: deben estar entre 0 y 10.','danger');return;}
+    const invalida=pendientes.find(m=>evaluar(actuales(m)).errorReposicion);
+    if(invalida){aviso(evaluar(actuales(invalida)).errorReposicion,'danger');return;}
     await conOcupado(async()=>{
       const result=await api.json('/cursos/'+curso.id_curso+'/calificaciones'+(publicar?'/publicacion':''),{method:'POST',body:{calificaciones:pendientes.map(m=>({matriculaId:Number(m),...borrador[m]}))}});
       // No borra la copia temporal ni cambia la tabla si el servidor rechaza el lote.

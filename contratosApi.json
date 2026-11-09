@@ -504,6 +504,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Reposición no elegible o conservada tras cambios que la invalidan; no se guardó el lote",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -603,6 +613,16 @@
           },
           "503": {
             "description": "Falta autorizar y preparar el esquema para borradores y publicaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Reposición no elegible o conservada tras cambios que la invalidan; no se guardó el lote",
             "content": {
               "application/json": {
                 "schema": {
@@ -1319,7 +1339,7 @@
           "Calificaciones"
         ],
         "summary": "Guardar y publicar cambios masivos de la tabla",
-        "description": "Una única transacción guarda las notas enviadas y publica sus registros ordinarios. Cada registro seleccionado exige nota para todos los matriculados; si falla alguno no guarda ni publica ninguna parte. Un arreglo vacío publica los registros guardados aún en borrador con alguna nota. Reposición no interviene en la final. No incorpora estudiantes.",
+        "description": "Guarda y publica el lote en una transacción. Editar o borrar reposicion corresponde al Registro 3. Valida las reglas de reposición en el estado completo de cada alumno y exige nota del registro seleccionado para todos los matriculados; no exige completar otros registros. Si falla alguna validación, revierte todo. Una lista vacía publica los registros guardados pendientes con notas.",
         "parameters": [
           {
             "name": "cursoId",
@@ -1401,7 +1421,7 @@
             }
           },
           "422": {
-            "description": "Registro incompleto o sin registros ordinarios pendientes; toda la transacción se revierte",
+            "description": "Reposición no elegible o conservada tras cambios que la invalidan; no se guardó el lote",
             "content": {
               "application/json": {
                 "schema": {
@@ -1676,7 +1696,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nota entre 0 y 10, hasta dos decimales. null deja el registro pendiente y los campos omitidos conservan su valor. No requiere completar los otros registros para guardar un borrador.",
+            "multipleOf": 0.01
           },
           "nota2": {
             "type": "number",
@@ -1684,7 +1705,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nota entre 0 y 10, hasta dos decimales. null deja el registro pendiente y los campos omitidos conservan su valor. No requiere completar los otros registros para guardar un borrador.",
+            "multipleOf": 0.01
           },
           "nota3": {
             "type": "number",
@@ -1692,7 +1714,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nota entre 0 y 10, hasta dos decimales. null deja el registro pendiente y los campos omitidos conservan su valor. No requiere completar los otros registros para guardar un borrador.",
+            "multipleOf": 0.01
           },
           "reposicion": {
             "type": "number",
@@ -1700,7 +1723,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nuevo promedio completo del Registro 3 (0 a 10), calculado previamente por el docente. Solo se admite con las tres notas ordinarias completas, final ordinaria sin redondear < 6.00 y nota1 + nota2 >= 10. Reemplaza el aporte del 40% para calcular la final; conserva nota3 original. null elimina la reposición; 0 es válido. Si una actualización ordinaria invalida una reposición conservada, se rechaza el lote hasta borrarla.",
+            "multipleOf": 0.01
           },
           "notaFinal": {
             "type": "number",
@@ -1709,7 +1733,7 @@
             "nullable": true,
             "example": 8.5,
             "readOnly": true,
-            "description": "Final ordinaria calculada desde nota1*0.30+nota2*0.30+nota3*0.40. null si falta algún registro. No usa reposicion. La columna histórica notafinal se conserva separada."
+            "description": "Final con dos decimales: nota1*0.30 + nota2*0.30 + (reposicion válida, o nota3)*0.40. No hay redondeos intermedios. null si faltan ordinarias o existe una reposición inválida que debe corregirse. Aprobación con final >= 6.00."
           },
           "estado": {
             "type": "string",
@@ -1740,6 +1764,34 @@
               }
             },
             "readOnly": true
+          },
+          "notaFinalOrdinaria": {
+            "type": "number",
+            "nullable": true,
+            "readOnly": true,
+            "description": "Promedio ponderado ordinario sin redondear, usado para decidir elegibilidad."
+          },
+          "puedeReponer": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "errorReposicion": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true,
+            "description": "Diagnóstico de una reposición histórica inválida; debe borrarse/corregirse antes de guardar o publicar."
+          },
+          "aprobado": {
+            "type": "boolean",
+            "nullable": true,
+            "readOnly": true,
+            "description": "true si la final calculada es >= 6.00; null si está pendiente o no es válida."
+          },
+          "notaAcumulada": {
+            "type": "number",
+            "nullable": true,
+            "readOnly": true,
+            "description": "Avance ordinario provisional: suma de las notas disponibles por sus pesos 30/30/40, con dos decimales. No redistribuye pesos ni sustituye null en los registros. La tabla muestra este avance mientras notaFinal sea null. No habilita reposición ni determina aprobación."
           }
         },
         "required": [
@@ -1778,7 +1830,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nota entre 0 y 10, hasta dos decimales. null deja el registro pendiente y los campos omitidos conservan su valor. No requiere completar los otros registros para guardar un borrador.",
+            "multipleOf": 0.01
           },
           "nota2": {
             "type": "number",
@@ -1786,7 +1839,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nota entre 0 y 10, hasta dos decimales. null deja el registro pendiente y los campos omitidos conservan su valor. No requiere completar los otros registros para guardar un borrador.",
+            "multipleOf": 0.01
           },
           "nota3": {
             "type": "number",
@@ -1794,7 +1848,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nota entre 0 y 10, hasta dos decimales. null deja el registro pendiente y los campos omitidos conservan su valor. No requiere completar los otros registros para guardar un borrador.",
+            "multipleOf": 0.01
           },
           "reposicion": {
             "type": "number",
@@ -1802,7 +1857,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nuevo promedio completo del Registro 3 (0 a 10), calculado previamente por el docente. Solo se admite con las tres notas ordinarias completas, final ordinaria sin redondear < 6.00 y nota1 + nota2 >= 10. Reemplaza el aporte del 40% para calcular la final; conserva nota3 original. null elimina la reposición; 0 es válido. Si una actualización ordinaria invalida una reposición conservada, se rechaza el lote hasta borrarla.",
+            "multipleOf": 0.01
           }
         },
         "required": [
@@ -1845,7 +1901,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nota entre 0 y 10, hasta dos decimales. null deja el registro pendiente y los campos omitidos conservan su valor. No requiere completar los otros registros para guardar un borrador.",
+            "multipleOf": 0.01
           },
           "nota2": {
             "type": "number",
@@ -1853,7 +1910,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nota entre 0 y 10, hasta dos decimales. null deja el registro pendiente y los campos omitidos conservan su valor. No requiere completar los otros registros para guardar un borrador.",
+            "multipleOf": 0.01
           },
           "nota3": {
             "type": "number",
@@ -1861,7 +1919,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nota entre 0 y 10, hasta dos decimales. null deja el registro pendiente y los campos omitidos conservan su valor. No requiere completar los otros registros para guardar un borrador.",
+            "multipleOf": 0.01
           },
           "reposicion": {
             "type": "number",
@@ -1869,7 +1928,8 @@
             "maximum": 10,
             "nullable": true,
             "example": 8.5,
-            "description": "Número 0..10 redondeado a dos decimales, o null para dejar sin nota."
+            "description": "Nuevo promedio completo del Registro 3 (0 a 10), calculado previamente por el docente. Solo se admite con las tres notas ordinarias completas, final ordinaria sin redondear < 6.00 y nota1 + nota2 >= 10. Reemplaza el aporte del 40% para calcular la final; conserva nota3 original. null elimina la reposición; 0 es válido. Si una actualización ordinaria invalida una reposición conservada, se rechaza el lote hasta borrarla.",
+            "multipleOf": 0.01
           }
         },
         "minProperties": 1,

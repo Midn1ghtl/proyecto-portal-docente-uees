@@ -79,9 +79,9 @@ test('lectura calcula 30/30/40 sin usar los valores históricos incorrectos',asy
 });
 test('POST parcial conserva campos omitidos y null permite borrador',async()=>{
   const antes=(await notas()).find(r=>r.matriculaId===matriculas[0].matricula_id);
-  const response=await req('/cursos/1/calificaciones',{method:'POST',body:{calificaciones:[{matriculaId:antes.matriculaId,nota1:8.5,nota3:null,reposicion:9}]}});
+  const response=await req('/cursos/1/calificaciones',{method:'POST',body:{calificaciones:[{matriculaId:antes.matriculaId,nota1:8.5,nota3:null,reposicion:null}]}});
   assert.equal(response.status,200);const row=(await response.json()).data.find(r=>r.matriculaId===antes.matriculaId);
-  assert.equal(row.nota1,8.5);assert.equal(row.nota2,antes.nota2);assert.equal(row.nota3,null);assert.equal(row.notaFinal,null);assert.equal(row.reposicion,9);
+  assert.equal(row.nota1,8.5);assert.equal(row.nota2,antes.nota2);assert.equal(row.nota3,null);assert.equal(row.notaFinal,null);assert.equal(row.reposicion,null);
 });
 test('un lote inválido no escribe parcialmente y rechaza duplicados y tipos incorrectos',async()=>{
   const antes=await notas();
@@ -155,8 +155,16 @@ test('botón único guarda y publica varios alumnos; fallo revierte el lote comp
   const antesReposicion=(await (await req(ruta)).json()).data;
   r=await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[{matriculaId:1,reposicion:10}]}});assert.equal(r.status,422);
   assert.deepEqual((await (await req(ruta)).json()).data,antesReposicion);
-  r=await req(ruta,{method:'POST',body:{calificaciones:[{matriculaId:1,reposicion:10}]}});assert.equal(r.status,200);
-  assert.equal((await r.json()).data[0].reposicion,10);
+  r=await req(ruta,{method:'POST',body:{calificaciones:[{matriculaId:1,reposicion:10}]}});assert.equal(r.status,422);
+});
+
+test('final muestra dos decimales sin redondear componentes',async()=>{
+  const r=await req('/cursos/6/calificaciones',{method:'POST',body:{calificaciones:[{matriculaId:1,nota1:8.25,nota2:8.25,nota3:8.25,reposicion:null}]}});
+  assert.equal(r.status,200);
+  const fila=(await r.json()).data.find(n=>n.matriculaId===1);
+  assert.equal(fila.notaFinal,8.25);assert.equal(fila.nota1,8.25);
+  const guardada=(await pg.query('SELECT notafinal FROM universidaduees.calificaciones WHERE asignaturaid=6 AND estudianteid=1')).rows[0];
+  assert.equal(Number(guardada.notafinal),8.25);
 });
 
 test('un curso vacío devuelve lista vacía y no puede publicarse',async()=>{
@@ -170,14 +178,103 @@ test('PDF es descargable y Excel contiene CIF texto y notas numéricas',async()=
   fs.writeFileSync(path.join(os.tmpdir(),'uees-test-academico.pdf'),pdf);
   response=await req('/cursos/1/exportar');assert.equal(response.status,200);assert.match(response.headers.get('content-disposition'),/\.xlsx/);
   const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(Buffer.from(await response.arrayBuffer()));const sheet=workbook.getWorksheet('Calificaciones');
+  assert.equal(sheet.getColumn(7).numFmt,'0.00');
   assert.equal(sheet.rowCount,51);let encontrado=false;
   sheet.eachRow((row,i)=>{if(i>1&&row.getCell(1).value==='CIF-UEES-0001')encontrado=true;});assert.ok(encontrado);
   const primera=(await notas()).find(r=>r.matriculaId===matriculas[0].matricula_id);
   const rows=[];sheet.eachRow((row,i)=>{if(i>1)rows.push(row.values);});
-  const nota=rows.find(r=>r[1]==='CIF-UEES-0001');assert.equal(typeof nota[3],'number');assert.equal(nota[7],primera.notaFinal);
+  const nota=rows.find(r=>r[1]==='CIF-UEES-0001');assert.equal(typeof nota[3],'number');assert.equal(nota[7],primera.notaFinal??primera.notaAcumulada);
   assert.equal((await req('/cursos/1/informe',{profesor:2})).status,403);
   assert.equal((await req('/cursos/1/exportar',{profesor:2})).status,403);
 });
+test('reposición: fórmulas, elegibilidad, actualizaciones parciales y borrado seguro',async()=>{
+  await pg.query("INSERT INTO universidaduees.asignaturas(asignaturaid,nombre,cursoid,profesorid) VALUES(7,'Reposición',1,'1')");
+  await pg.query('INSERT INTO universidaduees.matricula(asignaturaid,estudianteid,cursoid) VALUES(7,1,1)');
+  const ruta='/cursos/7/calificaciones';
+  const guardar=calificaciones=>req(ruta,{method:'POST',body:{calificaciones}});
+  let r=await guardar([{matriculaId:1,nota1:5}]);assert.equal(r.status,200);
+  let fila=(await r.json()).data[0];const id=fila.calificacionId;
+  assert.equal(fila.nota1,5);assert.equal(fila.nota2,null);assert.equal(fila.nota3,null);assert.equal(fila.notaFinal,null);
+  // Se puede publicar R1 aunque R2 y R3 no tengan notas.
+  r=await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[]}});assert.equal(r.status,200);
+  assert.deepEqual((await r.json()).data.registros,[1]);
+  r=await guardar([{matriculaId:1,nota2:5,nota3:4}]);assert.equal(r.status,200);assert.equal((await r.json()).data[0].notaFinal,4.6);
+  for(const [reposicion,final,aprobado] of [[8,6.2,true],[7.5,6,true],[0,3,false],[10,7,true],[null,4.6,false]]){
+    r=await req(ruta+'/'+id,{method:'PATCH',body:{reposicion}});assert.equal(r.status,200);
+    fila=(await r.json()).data;assert.equal(fila.notaFinal,final);assert.equal(fila.aprobado,aprobado);assert.equal(fila.nota3,4);
+    assert.equal(fila.nota1,5);assert.equal(fila.nota2,5);
+    const bd=(await pg.query('SELECT nota3,notafinal,reposicion FROM universidaduees.calificaciones WHERE calificacionid=$1',[id])).rows[0];
+    assert.equal(Number(bd.nota3),4);assert.equal(Number(bd.notafinal),final);
+    assert.equal(bd.reposicion===null?null:Number(bd.reposicion),reposicion);
+  }
+  for(const cambios of [{nota1:4,nota2:5,nota3:4,reposicion:8},{nota1:8,nota2:8,nota3:8,reposicion:8},{nota3:null,reposicion:8}]){
+    r=await guardar([{matriculaId:1,...cambios}]);assert.equal(r.status,422);assert.match((await r.json()).message,/reposición/);
+  }
+  for(const campo of ['nota1','nota2','nota3','reposicion'])for(const v of [-0.01,10.01]){
+    assert.equal((await guardar([{matriculaId:1,[campo]:v}])).status,400);
+    assert.equal((await req(ruta+'/'+id,{method:'PATCH',body:{[campo]:v}})).status,400);
+  }
+  r=await guardar([{matriculaId:1,reposicion:8}]);assert.equal(r.status,200);
+  for(const cambios of [{nota1:4},{nota1:10,nota2:10,nota3:10},{nota2:null}]){
+    r=await req(ruta+'/'+id,{method:'PATCH',body:cambios});assert.equal(r.status,422);assert.match((await r.json()).message,/Borra la reposición/);
+    assert.equal((await (await req(ruta)).json()).data[0].notaFinal,6.2);
+  }
+  r=await guardar([{matriculaId:1,nota2:null}]);assert.equal(r.status,422);
+  r=await req(ruta+'/'+id,{method:'PATCH',body:{nota2:null,reposicion:null}});assert.equal(r.status,200);assert.equal((await r.json()).data.notaFinal,null);
+  r=await req(ruta+'/'+id,{method:'PATCH',body:{nota2:5,reposicion:8}});assert.equal(r.status,200);
+  // Editar solo reposición publica R3 y conserva la nota original.
+  r=await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[{matriculaId:1,reposicion:7.5}]}});assert.equal(r.status,200);
+  let publicada=(await r.json()).data;assert.deepEqual(publicada.registros,[3]);assert.equal(publicada.calificaciones[0].notaFinal,6);
+  r=await guardar([{matriculaId:1,reposicion:0}]);assert.equal(r.status,200);assert.equal((await r.json()).data[0].registrosPublicados.registro3,false);
+  r=await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[{matriculaId:1,reposicion:null}]}});assert.equal(r.status,200);assert.equal((await r.json()).data.calificaciones[0].notaFinal,4.6);
+});
+
+test('borrador nuevo por registro y lote de reposición inválida no escribe parcialmente',async()=>{
+  await pg.query("INSERT INTO universidaduees.asignaturas(asignaturaid,nombre,cursoid,profesorid) VALUES(8,'Borrador independiente',1,'1')");
+  await pg.query('INSERT INTO universidaduees.matricula(asignaturaid,estudianteid,cursoid) VALUES(8,1,1),(8,2,1)');
+  const ruta='/cursos/8/calificaciones';
+  let r=await req(ruta,{method:'POST',body:{calificaciones:[{matriculaId:1,nota1:5,nota2:5,nota3:4,reposicion:8},{matriculaId:2,nota1:4,nota2:4,nota3:4,reposicion:8}]}});
+  assert.equal(r.status,422);assert.deepEqual((await (await req(ruta)).json()).data,[]);
+  r=await req(ruta,{method:'POST',body:{calificaciones:[{matriculaId:1,nota1:5},{matriculaId:2,nota1:0}]}});assert.equal(r.status,200);
+  let filas=(await r.json()).data;assert.ok(filas.every(f=>f.nota2===null&&f.nota3===null&&f.notaFinal===null));
+  filas=(await (await req(ruta)).json()).data;assert.equal(filas[1].nota1,0);
+  assert.equal(filas[0].notaAcumulada,1.5);assert.equal(filas[1].notaAcumulada,0);
+  const excel=await req('/cursos/8/exportar');assert.equal(excel.status,200);
+  const libro=new ExcelJS.Workbook();await libro.xlsx.load(Buffer.from(await excel.arrayBuffer()));
+  let acumulada;libro.getWorksheet('Calificaciones').eachRow((fila,i)=>{if(i>1&&fila.getCell(1).value==='CIF-UEES-0001')acumulada=fila;});
+  assert.equal(acumulada.getCell(7).value,1.5);assert.equal(acumulada.getCell(8).value,'Provisional');
+  assert.equal(acumulada.getCell(4).value,null);assert.equal(acumulada.getCell(5).value,null);
+  const PDFDocument=require('pdfkit'),textoOriginal=PDFDocument.prototype.text,textos=[];
+  PDFDocument.prototype.text=function(t,...args){textos.push(String(t));return textoOriginal.call(this,t,...args);};
+  try {const pdf=await req('/cursos/8/informe');assert.equal(pdf.status,200);await pdf.arrayBuffer();}
+  finally {PDFDocument.prototype.text=textoOriginal;}
+  assert.ok(textos.includes('1.50*'));
+
+  r=await req(ruta+'/publicacion',{method:'POST',body:{calificaciones:[]}});assert.equal(r.status,200);assert.deepEqual((await r.json()).data.registros,[1]);
+});
+
+test('PDF, Excel, API y notafinal utilizan el mismo cálculo con reposición',async()=>{
+  let r=await req('/cursos/7/calificaciones',{method:'POST',body:{calificaciones:[{matriculaId:1,nota1:5,nota2:5,nota3:4,reposicion:8}]}});assert.equal(r.status,200);
+  const fila=(await r.json()).data[0];assert.equal(fila.notaFinal,6.2);
+  const PDFDocument=require('pdfkit'),original=PDFDocument.prototype.text,impreso=[];
+  PDFDocument.prototype.text=function(texto,...args){impreso.push(String(texto));return original.call(this,texto,...args);};
+  try {
+    r=await req('/cursos/7/informe');assert.equal(r.status,200);
+    const pdf=Buffer.from(await r.arrayBuffer());assert.equal(pdf.subarray(0,4).toString(),'%PDF');
+  } finally {PDFDocument.prototype.text=original;}
+  assert.ok(impreso.includes(fila.notaFinal.toFixed(2)));assert.ok(impreso.includes('4.00'));assert.ok(impreso.includes('8.00'));
+  r=await req('/cursos/7/exportar');assert.equal(r.status,200);
+  const libro=new ExcelJS.Workbook();await libro.xlsx.load(Buffer.from(await r.arrayBuffer()));
+  const hoja=libro.getWorksheet('Calificaciones');assert.equal(hoja.getRow(2).getCell(7).value,fila.notaFinal);
+  assert.equal(hoja.getColumn(7).numFmt,'0.00');assert.equal(hoja.getRow(2).getCell(5).value,4);
+  // Un registro histórico incompatible no se publica silenciosamente.
+  await pg.query('UPDATE universidaduees.calificaciones SET nota1=9,nota2=9,nota3=9 WHERE asignaturaid=7');
+  r=await req('/cursos/7/registros/3/publicacion',{method:'POST',body:{confirmar:true}});assert.equal(r.status,422);
+  r=await req('/cursos/7/calificaciones/publicacion',{method:'POST',body:{calificaciones:[]}});assert.equal(r.status,422);
+  r=await req('/cursos/7/calificaciones');fila.errorReposicion=(await r.json()).data[0].errorReposicion;assert.match(fila.errorReposicion,/Borra la reposición/);
+  assert.equal((await req('/cursos/7/calificaciones',{method:'POST',body:{calificaciones:[{matriculaId:1,reposicion:null}]}})).status,200);
+});
+
 test('correo solo se modifica para el docente autenticado y valida conflictos',async()=>{
   const r=await req('/profesor/1/email',{method:'PATCH',body:{correo:'nuevo.docente@example.test'}});assert.equal(r.status,200);assert.equal((await r.json()).data.correo,'nuevo.docente@example.test');
   assert.equal((await req('/profesor/2/email',{method:'PATCH',body:{correo:'otro@example.test'}})).status,403);

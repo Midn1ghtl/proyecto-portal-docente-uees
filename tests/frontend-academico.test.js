@@ -6,13 +6,14 @@ const path=require('node:path');
 const script=fs.readFileSync(path.join(__dirname,'../PagWeb/src/js/asignatura.js'),'utf8');
 const tick=async()=>{for(let i=0;i<8;i++)await new Promise(setImmediate);};
 
-async function pagina({search='?cursoId=1',fallanNotas=false,fallanEstudiantes=false,fallarPublicacion=false,storage=new Map()}={}) {
+async function pagina({search='?cursoId=1',fallanNotas=false,fallanEstudiantes=false,fallarPublicacion=false,completas=false,notasIniciales=null,storage=new Map()}={}) {
   const elementos=new Map(),llamadas=[],descargas=[],avisos=[];
   const el=id=>{
     if(!elementos.has(id))elementos.set(id,{id,innerHTML:'',textContent:'',value:'',disabled:false,handlers:{},addEventListener(tipo,fn){this.handlers[tipo]=fn;},focus(){this.enfocado=true;}});
     return elementos.get(id);
   };
-  let notas=[{calificacionId:10,matriculaId:7,nota1:6,nota2:null,nota3:null,reposicion:null,registrosPublicados:{registro1:false,registro2:false,registro3:false}}];
+  let notas=[{calificacionId:10,matriculaId:7,nota1:6,nota2:completas?6:null,nota3:completas?6:null,reposicion:null,registrosPublicados:{registro1:false,registro2:false,registro3:false}}];
+  if(notasIniciales)Object.assign(notas[0],notasIniciales);
   const api={
     async json(ruta,opciones={}) {
       llamadas.push({ruta,...opciones});
@@ -33,14 +34,16 @@ async function pagina({search='?cursoId=1',fallanNotas=false,fallanEstudiantes=f
   const contexto={APIAcademica:api,Portal:{esc:String,listo:Promise.resolve({profesorId:'001'})},
     document:{getElementById:el,querySelectorAll:()=>[]},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     location:{search},history:{replaceState(){}},URLSearchParams,confirm:mensaje=>{avisos.push(mensaje);return true;},addEventListener(){}};
-  contexto.window=contexto;vm.runInNewContext(script,contexto);await tick();
+  contexto.window=contexto;vm.createContext(contexto);vm.runInContext(fs.readFileSync(path.join(__dirname,'../PagWeb/src/js/calculo-notas.js'),'utf8'),contexto);vm.runInContext(script,contexto);await tick();
+  let celdaFinal={textContent:''};
   function editar(campo,valor){
-    const inputs=['nota1','nota2','nota3','reposicion'].map(c=>({dataset:{campo:c},value:String(notas[0][c]??''),validity:{badInput:false},classList:{toggle(){}}}));
+    const guardado=JSON.parse(storage.get('borrador_notas_001_1')||'{}')['7']||{};
+    const inputs=['nota1','nota2','nota3','reposicion'].map(c=>({dataset:{campo:c},value:String((Object.hasOwn(guardado,c)?guardado[c]:notas[0][c])??''),validity:{badInput:false},classList:{toggle(){}}}));
     inputs.find(i=>i.dataset.campo===campo).value=valor;
-    const tr={dataset:{m:'7'},querySelectorAll:()=>inputs,querySelector:()=>({textContent:''}),classList:{toggle(){}}};
+    const tr={dataset:{m:'7'},querySelectorAll:()=>inputs,querySelector:()=>celdaFinal,classList:{toggle(){}}};
     el('cuerpoNotas').handlers.input({target:{closest:()=>({closest:()=>tr})}});
   }
-  return {el,llamadas,descargas,avisos,storage,editar,contexto};
+  return {el,llamadas,descargas,avisos,storage,editar,contexto,celdaFinal};
 }
 
 test('sin selección no elige ni descarga una asignatura arbitraria',async()=>{
@@ -83,6 +86,12 @@ test('informes avisan de pendientes y utilizan la asignatura seleccionada',async
   assert.match(p.el('mensaje').textContent,/Excel descargado/);
 });
 
+test('la tabla presenta la final con dos decimales',async()=>{
+  const p=await pagina({completas:true});assert.match(p.el('cuerpoNotas').innerHTML,/>6\.00<\/td>/);
+  p.editar('nota1','8.5');await p.el('btnEnviar').handlers.click();
+  assert.match(p.el('cuerpoNotas').innerHTML,/>6\.75<\/td>/);
+});
+
 test('HTML y frontend no ofrecen incorporación de estudiantes ni paneles por registro',()=>{
   const html=fs.readFileSync(path.join(__dirname,'../PagWeb/asignatura.html'),'utf8');
   for(const texto of ['archivoEstudiantes','btnImportar','estadoRegistro1','publicar1','data-guardar'])assert.ok(!html.includes(texto)&&!script.includes(texto));
@@ -99,4 +108,27 @@ test('barra lateral dirige a selección o delega la descarga de la materia activ
   const tipos=[];contexto.window.descargarInformeCurso=tipo=>tipos.push(tipo);
   enlaces[0].click({preventDefault(){evitada=true;}});enlaces[1].click({preventDefault(){}});
   assert.equal(evitada,true);assert.deepEqual(tipos,['pdf','xlsx']);
+});
+
+
+test('reposición se refleja inmediatamente, conserva cero y puede borrarse',async()=>{
+  const p=await pagina({notasIniciales:{nota1:5,nota2:5,nota3:4}});
+  assert.match(p.el('cuerpoNotas').innerHTML,/>4\.60<\/td>/);
+  for(const [entrada,salida] of [['8','6.20'],['7.5','6.00'],['0','3.00'],['','4.60']]){
+    p.editar('reposicion',entrada);assert.equal(p.celdaFinal.textContent,salida);
+  }
+  p.editar('reposicion','8');p.editar('nota1','4');
+  assert.match(p.el('mensaje').textContent,/Borra la reposición/);
+  await p.el('btnEnviar').handlers.click();assert.equal(p.llamadas.filter(x=>x.method==='POST').length,0);
+  p.editar('reposicion','');await p.el('btnEnviar').handlers.click();
+  assert.equal(p.llamadas.filter(x=>x.method==='POST').length,1);
+});
+
+test('la nota visible se actualiza sin etiquetas al editar o vaciar registros',async()=>{
+  const p=await pagina({notasIniciales:{nota1:null,nota2:null,nota3:null}});
+  assert.match(p.el('cuerpoNotas').innerHTML,/0\.00/);
+  for(const [campo,valor,esperada] of [
+    ['nota1','8','2.40'],['nota2','7','4.50'],
+    ['nota3','9','8.10'],['nota3','','4.50']
+  ]){p.editar(campo,valor);assert.equal(p.celdaFinal.textContent,esperada);}
 });

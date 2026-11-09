@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const {evaluar}=require("../../src/js/calculo-notas");
 const CAMPOS = ["nota1", "nota2", "nota3", "reposicion"];
 const fallo = (status, message) => Object.assign(new Error(message), { status });
 function id(valor, nombre = "Identificador") {
@@ -22,7 +23,9 @@ function notas(body, conMatricula = false) {
     const v = body[campo];
     if (v !== null && (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 10))
       throw fallo(400,campo + " debe ser un número entre 0 y 10 o null");
-    salida[campo] = v === null ? null : Math.round((v + Number.EPSILON)*100)/100;
+    if (v !== null && Math.abs(v*100-Math.round(v*100)) > 1e-8)
+      throw fallo(400,campo + " admite como máximo dos decimales");
+    salida[campo] = v;
   }
   if (conMatricula) {
     if(typeof body.matriculaId!=='number')throw fallo(400,"matriculaId debe ser un entero numérico");
@@ -69,15 +72,24 @@ async function publicaciones(db,cursoId) {
   for (const row of result.rows) flags['registro'+row.registro]=row.publicado;
   return flags;
 }
+function conCalculo(row) {
+  const n=Object.fromEntries(CAMPOS.map(k=>[k,row[k]===null||row[k]===undefined?null:Number(row[k])]));
+  return {...row,...n,...evaluar(n)};
+}
+function validarReposicion(n,identificador='') {
+  const calculo=evaluar(n);
+  if(calculo.errorReposicion) throw fallo(422,(identificador?'Matrícula '+identificador+': ':'')+calculo.errorReposicion+' Puedes enviar reposicion: null para borrarla.');
+  return calculo;
+}
 async function leerNotas(db,cursoId) {
   const esquema=await estadoEsquema(db);
   const flags = await publicaciones(db,cursoId);
   const {rows} = await db.query(`SELECT c.calificacionid AS "calificacionId", m.estudianteid AS "matriculaId",
-    c.nota1,c.nota2,c.nota3,c.reposicion,CASE WHEN c.nota1 IS NULL OR c.nota2 IS NULL OR c.nota3 IS NULL THEN NULL ELSE round(c.nota1*0.30+c.nota2*0.30+c.nota3*0.40,2) END AS "notaFinal"
+    c.nota1,c.nota2,c.nota3,c.reposicion
     FROM universidaduees.calificaciones c JOIN universidaduees.matricula m
       ON m.asignaturaid=c.asignaturaid AND m.estudianteid=c.estudianteid
     WHERE m.asignaturaid=$1 ORDER BY m.estudianteid`,[cursoId]);
-  return rows.map(r=>({...r,...Object.fromEntries([...CAMPOS,"notaFinal"].map(k=>[k,r[k]===null?null:Number(r[k])])),
+  return rows.map(r=>({...conCalculo(r),
     estado:!esquema.publicacionDisponible?"SIN_ESTADO":Object.values(flags).some(Boolean)?"PUBLICADO":"BORRADOR",registrosPublicados:{...flags}}));
 }
 async function despublicar(db,cursoId,registros) {
@@ -106,14 +118,15 @@ async function guardarEn(tx,cursoId,profesorId,entradas) {
             const antes=previa[campo]===null?null:Number(previa[campo]);
             fila[campo]=Object.hasOwn(e,campo)?e[campo]:antes;
             if(i<3&&antes!==fila[campo])registros.add(i+1);
-          });return fila;
+          });
+          if (previa.reposicion !== fila.reposicion && (previa.reposicion===null||Number(previa.reposicion)!==fila.reposicion))registros.add(3);
+          fila.notafinal=validarReposicion(fila,e.matriculaId).notaFinal;
+          return fila;
         });
         await tx.query(`INSERT INTO universidaduees.calificaciones
           (asignaturaid,estudianteid,docenteid,nota1,nota2,nota3,reposicion,notafinal)
-          SELECT $1,x.estudianteid,$2,x.nota1,x.nota2,x.nota3,x.reposicion,
-            CASE WHEN x.nota1 IS NULL OR x.nota2 IS NULL OR x.nota3 IS NULL THEN NULL
-                 ELSE round(x.nota1*0.30+x.nota2*0.30+x.nota3*0.40,2) END
-          FROM jsonb_to_recordset($3::jsonb) AS x(estudianteid int,nota1 numeric,nota2 numeric,nota3 numeric,reposicion numeric)
+          SELECT $1,x.estudianteid,$2,x.nota1,x.nota2,x.nota3,x.reposicion,x.notafinal
+          FROM jsonb_to_recordset($3::jsonb) AS x(estudianteid int,nota1 numeric,nota2 numeric,nota3 numeric,reposicion numeric,notafinal numeric)
           ON CONFLICT(asignaturaid,estudianteid) DO UPDATE SET
             nota1=excluded.nota1,nota2=excluded.nota2,nota3=excluded.nota3,
             reposicion=excluded.reposicion,notafinal=excluded.notafinal,docenteid=excluded.docenteid`,[cursoId,profesorId,JSON.stringify(datos)]);
@@ -121,6 +134,7 @@ async function guardarEn(tx,cursoId,profesorId,entradas) {
   return [...registros];
 }
 async function publicarRegistro(tx,cursoId,r) {
+  for (const fila of (await tx.query('SELECT estudianteid,nota1,nota2,nota3,reposicion FROM universidaduees.calificaciones WHERE asignaturaid=$1',[cursoId])).rows) validarReposicion(conCalculo(fila),fila.estudianteid);
   const campo=['nota1','nota2','nota3'][r-1];
   const {rows}=await tx.query(`SELECT count(*)::int AS total,count(c.${campo})::int AS completas
     FROM universidaduees.matricula m LEFT JOIN universidaduees.calificaciones c
@@ -170,14 +184,13 @@ function crearAcademico(db) {
         await guardarEn(tx,cursoId,profesorId,entradas);
         // Publica los registros ordinarios incluidos. Sin ediciones, publica los
         // registros guardados aún en borrador que contengan al menos una nota.
-        let registros=[1,2,3].filter(r=>entradas.some(e=>Object.hasOwn(e,'nota'+r)));
-        if (entradas.length && !registros.length) throw fallo(422,'La reposición es un dato adicional sin registro de publicación definido. Usa Guardar cambios como borrador.');
+        let registros=[1,2,3].filter(r=>entradas.some(e=>Object.hasOwn(e,'nota'+r)||(r===3&&Object.hasOwn(e,'reposicion'))));
         if (!registros.length) {
           const flags=await publicaciones(tx,cursoId);
           const {rows}=await tx.query('SELECT count(nota1)::int AS n1,count(nota2)::int AS n2,count(nota3)::int AS n3 FROM universidaduees.calificaciones WHERE asignaturaid=$1',[cursoId]);
           registros=[1,2,3].filter(r=>!flags['registro'+r] && rows[0]['n'+r]>0);
         }
-        if(!registros.length) throw fallo(422,'No hay registros ordinarios pendientes de publicación. Puedes guardar la reposición como dato adicional en borrador.');
+        if(!registros.length) throw fallo(422,'No hay registros pendientes de publicación.');
         for(const r of registros) await publicarRegistro(tx,cursoId,r);
         return {calificaciones:await leerNotas(tx,cursoId),registrosPublicados:await publicaciones(tx,cursoId),registros};
       },true);
@@ -188,12 +201,14 @@ function crearAcademico(db) {
         const {rows}=await tx.query("SELECT * FROM universidaduees.calificaciones WHERE asignaturaid=$1 AND calificacionid=$2",[cursoId,calificacionId]);
         if(!rows[0])throw fallo(404,"Calificación no encontrada en este curso");
         const previa=rows[0], valores=CAMPOS.map(k=>Object.hasOwn(cambios,k)?cambios[k]:previa[k]===null?null:Number(previa[k]));
+        const mezcladas=Object.fromEntries(CAMPOS.map((k,i)=>[k,valores[i]]));
+        const calculo=validarReposicion(mezcladas);
         await tx.query(`UPDATE universidaduees.calificaciones SET nota1=$3,nota2=$4,nota3=$5,reposicion=$6,
-          notafinal=CASE WHEN $3::numeric IS NULL OR $4::numeric IS NULL OR $5::numeric IS NULL THEN NULL
-          ELSE round($3::numeric*0.30+$4::numeric*0.30+$5::numeric*0.40,2) END
-          WHERE asignaturaid=$1 AND calificacionid=$2`,[cursoId,calificacionId,...valores]);
+          notafinal=$7
+          WHERE asignaturaid=$1 AND calificacionid=$2`,[cursoId,calificacionId,...valores,calculo.notaFinal]);
         const registros=[1,2,3].filter(i=>Object.hasOwn(cambios,'nota'+i)&&cambios['nota'+i]!== (previa['nota'+i]===null?null:Number(previa['nota'+i])));
-        await despublicar(tx,cursoId,registros);
+        if(Object.hasOwn(cambios,'reposicion')&&cambios.reposicion!==(previa.reposicion===null?null:Number(previa.reposicion)))registros.push(3);
+        await despublicar(tx,cursoId,[...new Set(registros)]);
         return (await leerNotas(tx,cursoId)).find(r=>r.calificacionId===calificacionId);
       },true);
     },
@@ -206,26 +221,19 @@ function crearAcademico(db) {
       const r=id(registro,"registro");if(r>3)throw fallo(400,"registro debe ser 1, 2 o 3");
       if(publicar&&(!objeto(body)||body.confirmar!==true||Object.keys(body).some(k=>k!=="confirmar")))throw fallo(400,"Se requiere confirmar: true");
       return conCurso(p,c,async(tx,detalle,cursoId)=>{
-        if(publicar){
-          const campo=['nota1','nota2','nota3'][r-1];
-          const {rows}=await tx.query(`SELECT count(*)::int AS total,count(c.${campo})::int AS completas
-            FROM universidaduees.matricula m LEFT JOIN universidaduees.calificaciones c
-            ON c.asignaturaid=m.asignaturaid AND c.estudianteid=m.estudianteid WHERE m.asignaturaid=$1`,[cursoId]);
-          if(!rows[0].total||rows[0].total!==rows[0].completas)throw fallo(422,"Todos los estudiantes deben tener nota en el registro para publicarlo");
-        }
-        await tx.query(`INSERT INTO universidaduees.publicaciones_registros(asignaturaid,registro,publicado)
+        if(publicar) await publicarRegistro(tx,cursoId,r);
+        else await tx.query(`INSERT INTO universidaduees.publicaciones_registros(asignaturaid,registro,publicado)
           VALUES($1,$2,$3) ON CONFLICT(asignaturaid,registro) DO UPDATE SET publicado=excluded.publicado,actualizado_en=now()`,[cursoId,r,publicar]);
         return {cursoId,registro:r,publicado:publicar};
       },true);
     },
     informe: (p,c)=>conCurso(p,c,async(tx,detalle,cursoId)=>{
       const {rows}=await tx.query(`SELECT e.cif,concat_ws(' ',e.nombre,e.apellidos) AS nombre,
-        c.nota1,c.nota2,c.nota3,c.reposicion,CASE WHEN c.nota1 IS NULL OR c.nota2 IS NULL OR c.nota3 IS NULL THEN NULL ELSE round(c.nota1*0.30+c.nota2*0.30+c.nota3*0.40,2) END AS "notaFinal"
+        c.nota1,c.nota2,c.nota3,c.reposicion
         FROM universidaduees.matricula m JOIN universidaduees.estudiantes e ON e.estudianteid=m.estudianteid
         LEFT JOIN universidaduees.calificaciones c ON c.asignaturaid=m.asignaturaid AND c.estudianteid=m.estudianteid
         WHERE m.asignaturaid=$1 ORDER BY e.nombre,e.apellidos,m.estudianteid`,[cursoId]);
-      return {curso:cursoPublico(detalle),...await estadoEsquema(tx),registrosPublicados:await publicaciones(tx,cursoId),estudiantes:rows.map(r=>({...r,
-        ...Object.fromEntries([...CAMPOS,"notaFinal"].map(k=>[k,r[k]===null?null:Number(r[k])]))}))};
+      return {curso:cursoPublico(detalle),...await estadoEsquema(tx),registrosPublicados:await publicaciones(tx,cursoId),estudiantes:rows.map(conCalculo)};
     }),
     async contrasena(p,propietario,body) {
       const profesorId=idProfesor(p);

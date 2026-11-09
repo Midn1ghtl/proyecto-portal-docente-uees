@@ -4,7 +4,7 @@ const db = require('../PagWeb/Backend/config/AcademicoDB');
   try {
     await db.transaction(async tx => {
       for (const [nombre, consulta] of [
-        ['columnas', `SELECT table_name,column_name,data_type,is_nullable,column_default
+        ['columnas', `SELECT table_name,column_name,data_type,is_nullable,column_default,is_generated,generation_expression
           FROM information_schema.columns WHERE table_schema='universidaduees'
           ORDER BY table_name,ordinal_position`],
         ['relaciones', `SELECT conrelid::regclass::text AS tabla,pg_get_constraintdef(oid) AS relacion
